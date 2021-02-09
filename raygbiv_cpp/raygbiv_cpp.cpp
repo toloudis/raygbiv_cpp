@@ -15,12 +15,15 @@
 #include "material.h"
 #include "moving_sphere.h"
 #include "sphere.h"
+#include "threadpool.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
 #include <chrono>
 #include <iostream>
+#include <sstream>
+#include <vector>
 
 color ray_color(const ray& r, const color& background, const hittable& world, int depth) {
     hit_record rec;
@@ -280,11 +283,58 @@ hittable_list final_scene() {
         )
     );
 
-    hittable_list worldbvh;
-    worldbvh.add(make_shared<bvh_node>(objects, 0.0f, 1.0f));
+    return objects;
+
+    //hittable_list worldbvh;
+    //worldbvh.add(make_shared<bvh_node>(objects, 0.0f, 1.0f));
 
 
-    return worldbvh; // objects
+    //return worldbvh;
+}
+
+bool render_tile(
+    const hittable_list& world,
+    const camera& cam,
+    uint8_t* image,
+    int image_width,
+    int image_height,
+    int max_depth,
+    color background,
+    int xoffset,
+    int yoffset,
+    int tilewidth,
+    int tileheight,
+    int samples_per_pixel
+) {
+    int ystart = yoffset;
+    int yend = yoffset + tileheight;
+    int xstart = xoffset;
+    int xend = xoffset + tilewidth;
+
+    std::stringstream stream; // #include <sstream> for this
+    stream << "Start tile " << xstart << "," << ystart << "-" << xend << "," << yend << std::endl;
+    std::cerr << stream.str();
+
+    for (int j = yend - 1; j >= ystart; --j) {
+        for (int i = xstart; i < xend; ++i) {
+
+            color pixel_color(0.0f, 0.0f, 0.0f);
+            for (int s = 0; s < samples_per_pixel; ++s) {
+                auto u = (i + random_float()) / (image_width - 1);
+                auto v = (j + random_float()) / (image_height - 1);
+                ray r = cam.get_ray(u, v);
+                pixel_color += ray_color(r, background, world, max_depth);
+            }
+
+            putPixel(image, samples_per_pixel, pixel_color, i, j, image_width);
+        }
+    }
+
+    std::stringstream stream2; // #include <sstream> for this
+    stream2 << "End tile " << xstart << "," << ystart << "-" << xend << "," << yend << std::endl;
+    std::cerr << stream2.str();
+
+    return true;
 }
 
 int main() {
@@ -368,7 +418,7 @@ int main() {
         world = final_scene();
         aspect_ratio = 1.0f;
         image_width = 800;
-        samples_per_pixel = 10;// 10000;
+        samples_per_pixel = 10000;
         background = color(0, 0, 0);
         lookfrom = point3(478, 278, -600);
         lookat = point3(278, 278, 0);
@@ -389,6 +439,47 @@ int main() {
     
     // Render
     auto start = std::chrono::high_resolution_clock::now();
+
+
+    unsigned int number_of_cores = std::thread::hardware_concurrency();
+
+    std::vector< std::future<bool> > jobs;
+    raygbiv::Tasks tasks;
+    // divide image into a set of tiles to run per thread.
+    int n_x_tiles = 4;
+    int n_y_tiles = 4;
+    for (int i = 0; i < n_y_tiles; ++i) {
+        for (int j = 0; j < n_x_tiles; ++j) {
+
+            int xoffset = j * image_width / n_x_tiles;
+            int yoffset = i * image_height / n_y_tiles;
+            int tilewidth = image_width / n_x_tiles;
+            int tileheight = image_height / n_y_tiles;
+            if (xoffset + tilewidth > image_width) {
+                tilewidth = image_width - xoffset;
+            }
+            if (yoffset + tileheight > image_height) {
+                tileheight = image_height - yoffset;
+            }
+            jobs.push_back(tasks.queue([&world, &cam, image, image_width, image_height, max_depth, background, samples_per_pixel, xoffset, yoffset, tilewidth, tileheight]()->bool {
+                return render_tile(world, cam, image, image_width,
+                    image_height,
+                    max_depth,
+                    background,
+                    xoffset,
+                    yoffset,
+                    tilewidth,
+                    tileheight,
+                    samples_per_pixel);
+                }));
+        }
+    }
+    tasks.start(number_of_cores);
+    for_each(jobs.begin(), jobs.end(), [](auto& x) { x.get(); });
+
+
+
+#if 0
     for (int j = image_height - 1; j >= 0; --j) {
         std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
         for (int i = 0; i < image_width; ++i) {
@@ -404,6 +495,7 @@ int main() {
             putPixel(image, samples_per_pixel, pixel_color, i, j, image_width);
         }
     }
+#endif
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cerr << "\nRender duration = " << duration.count() / 1000.f << " s" << std::endl;
@@ -414,3 +506,4 @@ int main() {
 
     std::cerr << "\nDone.\n";
 }
+
