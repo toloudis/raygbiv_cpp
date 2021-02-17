@@ -42,10 +42,16 @@ color ray_color(const ray& r, const color& background, const hittable& world, in
         color attenuation;
         color emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
 
-        if (!rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+        float pdf;
+        color albedo;
+
+        if (!rec.mat_ptr->scatter(r, rec, albedo, scattered, pdf))
             return emitted;
 
-        return emitted + attenuation * ray_color(scattered, background, world, depth - 1);
+        return emitted
+            + albedo * rec.mat_ptr->scattering_pdf(r, rec, scattered)
+            * ray_color(scattered, background, world, depth - 1) / pdf;
+
 }
 
 void putPixel(uint8_t* image, int samples_per_pixel, color& pixel_color, int i, int j, int image_width)
@@ -171,6 +177,34 @@ hittable_list cornell_box() {
     auto red = make_shared<lambertian>(color(.65f, .05f, .05f));
     auto white = make_shared<lambertian>(color(.73f, .73f, .73f));
     auto green = make_shared<lambertian>(color(.12f, .45f, .15f));
+    auto light = make_shared<diffuse_light>(color(15, 15, 15));
+
+    objects.add(make_shared<yz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 555.0f, green));
+    objects.add(make_shared<yz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 0.0f, red));
+    objects.add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, light));
+    objects.add(make_shared<xz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 555.0f, white));
+    objects.add(make_shared<xz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 0.0f, white));
+    objects.add(make_shared<xy_rect>(0.0f, 555.0f, 0.0f, 555.0f, 555.0f, white));
+
+    shared_ptr<hittable> box1 = make_shared<box>(point3(0, 0, 0), point3(165, 330, 165), white);
+    box1 = make_shared<rotate_y>(box1, 15.0f);
+    box1 = make_shared<translate>(box1, vec3(265, 0, 295));
+    objects.add(box1);
+
+    shared_ptr<hittable> box2 = make_shared<box>(point3(0, 0, 0), point3(165, 165, 165), white);
+    box2 = make_shared<rotate_y>(box2, -18.0f);
+    box2 = make_shared<translate>(box2, vec3(130, 0, 65));
+    objects.add(box2);
+
+    return objects;
+}
+#if 0
+hittable_list cornell_box() {
+    hittable_list objects;
+
+    auto red = make_shared<lambertian>(color(.65f, .05f, .05f));
+    auto white = make_shared<lambertian>(color(.73f, .73f, .73f));
+    auto green = make_shared<lambertian>(color(.12f, .45f, .15f));
     auto light = make_shared<diffuse_light>(color(15.0f, 15.0f, 15.0f));
 
     objects.add(make_shared<yz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 555.0f, green));
@@ -192,7 +226,7 @@ hittable_list cornell_box() {
 
     return objects;
 }
-
+#endif
 hittable_list cornell_smoke() {
     hittable_list objects;
 
@@ -355,7 +389,7 @@ int main() {
     auto aperture = 0.0f;
     color background(0, 0, 0);
 
-    switch (0) {
+    switch (6) {
     case 1:
         world = random_scene();
         lookfrom = point3(13.0f, 2.0f, 3.0f);
@@ -398,7 +432,7 @@ int main() {
         world = cornell_box();
         aspect_ratio = 1.0f;
         image_width = 600;
-        samples_per_pixel = 200;
+        samples_per_pixel = 100;
         background = color(0.0f, 0.0f, 0.0f);
         lookfrom = point3(278.0f, 278.0f, -800.0f);
         lookat = point3(278.0f, 278.0f, 0.0f);
@@ -434,7 +468,10 @@ int main() {
     
     uint8_t* image = new uint8_t[image_width * image_height * 3];
 
-    camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, 0.0f, 1.0f);
+    auto time0 = 0.0f;
+    auto time1 = 1.0f;
+
+    camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, time0, time1);
 
     
     // Render

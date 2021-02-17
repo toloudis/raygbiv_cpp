@@ -39,7 +39,7 @@ vec3 uniformSampleHemisphere(float u, float v, float* pdf=nullptr) {
     auto r = std::sqrt(std::max(0.0f, 1.0f - z * z));
     auto phi = 2 * pi * v;
     if (pdf) {
-        *pdf = 1.0 / (2.0 * pi);
+        *pdf = 1.0f / (2.0f * pi);
     }
     return vec3(r * std::cos(phi), r * std::sin(phi), z);
 }
@@ -48,7 +48,7 @@ vec3 uniformSampleSphere(float u, float v, float* pdf = nullptr) {
     auto r = std::sqrt(std::max(0.0f, 1.0f - z * z));
     auto phi = 2 * pi * v;
     if (pdf) {
-        *pdf = 1.0 / (4.0 * pi);
+        *pdf = 1.0f / (4.0f * pi);
     }
     return vec3(r * std::cos(phi), r * std::sin(phi), z);
 }
@@ -56,13 +56,13 @@ vec3 uniformSampleDisk(float u, float v, float* pdf = nullptr) {
     auto r = std::sqrt(u);
     auto theta = 2 * pi * v;
     if (pdf) {
-        *pdf = 1.0 / pi;
+        *pdf = 1.0f / pi;
     }
     return vec3(r * std::cos(theta), r * std::sin(theta), 0);
 }
 vec3 concentricSampleDisk(float u, float v, float* pdf = nullptr) {
     if (pdf) {
-        *pdf = 1.0 / pi;
+        *pdf = 1.0f / pi;
     }
     auto uOffset = 2.f * u - 1.0f;
     auto vOffset = 2.f * v - 1.0f;
@@ -72,11 +72,11 @@ vec3 concentricSampleDisk(float u, float v, float* pdf = nullptr) {
     float theta, r;
     if (std::abs(uOffset) > std::abs(vOffset)) {
         r = uOffset;
-        theta = (pi/4.0) * (vOffset / uOffset);
+        theta = (pi/4.0f) * (vOffset / uOffset);
     }
     else {
         r = vOffset;
-        theta = (pi/2.0) - (pi/4.0) * (uOffset / vOffset);
+        theta = (pi/2.0f) - (pi/4.0f) * (uOffset / vOffset);
     }
     return r * vec3(std::cos(theta), std::sin(theta), 0.0f);
 }
@@ -104,7 +104,7 @@ vec3 uniformSampleCone(float u, float v, float cosThetaMax, float* pdf=nullptr) 
 // returns barycentric coordinates
 vec3 uniformSampleTriangle(float u, float v, float area, float* pdf=nullptr) {
     if (pdf) {
-        *pdf = 1.0 / area;
+        *pdf = 1.0f / area;
     }
     auto su0 = std::sqrt(u);
     return vec3(1.0f - su0, v * su0, 0.0f);
