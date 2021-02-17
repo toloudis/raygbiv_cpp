@@ -41,6 +41,7 @@ inline int random_int(int min, int max) {
     return static_cast<int>(random_float(static_cast<float>(min), static_cast<float>(max) + 1.0f));
 }
 
+
 inline float clamp(float x, float min, float max) {
     if (x < min) return min;
     if (x > max) return max;
@@ -50,5 +51,17 @@ inline float clamp(float x, float min, float max) {
 
 #include "ray.h"
 #include "vec3.h"
+
+inline vec3 random_cosine_direction() {
+    auto r1 = random_float();
+    auto r2 = random_float();
+    auto z = sqrt(1 - r2);
+
+    auto phi = 2 * pi * r1;
+    auto x = cos(phi) * sqrt(r2);
+    auto y = sin(phi) * sqrt(r2);
+
+    return vec3(x, y, z);
+}
 
 #endif

@@ -40,13 +40,34 @@ color ray_color(const ray& r, const color& background, const hittable& world, in
 
         ray scattered;
         color attenuation;
-        color emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
+        color emitted = rec.mat_ptr->emitted(r, rec, rec.u, rec.v, rec.p);
 
         float pdf;
         color albedo;
 
         if (!rec.mat_ptr->scatter(r, rec, albedo, scattered, pdf))
             return emitted;
+
+        /////////////////////////////////
+        auto on_light = point3(random_float(213, 343), 554, random_float(227, 332));
+        auto to_light = on_light - rec.p;
+        auto distance_squared = to_light.length_squared();
+        to_light = unit_vector(to_light);
+
+        if (dot(to_light, rec.normal) < 0)
+            return emitted;
+
+        float light_area = (343 - 213) * (332 - 227);
+        auto light_cosine = fabs(to_light.y());
+        if (light_cosine < 0.000001)
+            return emitted;
+
+        pdf = distance_squared / (light_cosine * light_area);
+        scattered = ray(rec.p, to_light, r.time());
+        /////////////////////////////////////
+
+
+
 
         return emitted
             + albedo * rec.mat_ptr->scattering_pdf(r, rec, scattered)
@@ -181,7 +202,7 @@ hittable_list cornell_box() {
 
     objects.add(make_shared<yz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 555.0f, green));
     objects.add(make_shared<yz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 0.0f, red));
-    objects.add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, light));
+    objects.add(make_shared<flip_face>(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, light)));
     objects.add(make_shared<xz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 555.0f, white));
     objects.add(make_shared<xz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 0.0f, white));
     objects.add(make_shared<xy_rect>(0.0f, 555.0f, 0.0f, 555.0f, 555.0f, white));

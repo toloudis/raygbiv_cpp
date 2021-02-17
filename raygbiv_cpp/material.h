@@ -4,13 +4,15 @@
 #define MATERIAL_H
 
 #include "rtweekend.h"
+#include "onb.h"
 #include "texture.h"
 
 struct hit_record;
 
 class material {
 public:
-    virtual color emitted(float u, float v, const point3& p) const {
+    virtual color emitted(const ray& r_in, const hit_record& rec, float u, float v,
+        const point3& p) const {
         return color(0, 0, 0);
     }
     virtual bool scatter(
@@ -34,17 +36,12 @@ public:
     virtual bool scatter(
         const ray& r_in, const hit_record& rec, color& alb, ray& scattered, float& pdf
     ) const override {
-        // alternative: scatter with probability p and attenuation = albedo/p
-        auto scatter_direction = rec.normal + random_unit_vector();
-
-        // Catch degenerate scatter direction
-        if (scatter_direction.near_zero())
-            scatter_direction = rec.normal;
-
-        scattered = ray(rec.p, unit_vector(scatter_direction), r_in.time());
+        onb uvw;
+        uvw.build_from_w(rec.normal);
+        auto direction = uvw.local(random_cosine_direction());
+        scattered = ray(rec.p, unit_vector(direction), r_in.time());
         alb = albedo->value(rec.u, rec.v, rec.p);
-        pdf = dot(rec.normal, scattered.direction()) / pi;
-
+        pdf = dot(uvw.w(), scattered.direction()) / pi;
         return true;
     }
 
@@ -124,8 +121,14 @@ public:
         return false;
     }
 
-    virtual color emitted(float u, float v, const point3& p) const override {
-        return emit->value(u, v, p);
+    
+    virtual color emitted(const ray& r_in, const hit_record& rec, float u, float v,
+        const point3& p) const override {
+
+        if (rec.front_face)
+            return emit->value(u, v, p);
+        else
+            return color(0, 0, 0);
     }
 
 public:
