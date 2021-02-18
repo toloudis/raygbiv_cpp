@@ -19,6 +19,8 @@ using std::sqrt;
 const float infinity = std::numeric_limits<float>::infinity();
 const float pi = 3.1415926535897932385f;
 
+const float RAY_EPSILON = 0.001f;
+
 // Utility Functions
 
 inline float degrees_to_radians(float degrees) {

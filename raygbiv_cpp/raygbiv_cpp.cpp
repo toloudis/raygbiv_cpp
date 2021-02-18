@@ -14,6 +14,7 @@
 #include "hittable_list.h"
 #include "material.h"
 #include "moving_sphere.h"
+#include "pdf.h"
 #include "sphere.h"
 #include "threadpool.h"
 
@@ -25,14 +26,15 @@
 #include <sstream>
 #include <vector>
 
-color ray_color(const ray& r, const color& background, const hittable& world, int depth) {
+color ray_color(
+    const ray& r, const color& background, const hittable& world,
+    shared_ptr<hittable>& lights, int depth
+) {
     hit_record rec;
 
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if (depth <= 0)
         return color(0.0f, 0.0f, 0.0f);
-
-    static const float RAY_EPSILON = 0.001f;
     
         // If the ray hits nothing, return the background color.
         if (!world.hit(r, RAY_EPSILON, infinity, rec))
@@ -42,36 +44,22 @@ color ray_color(const ray& r, const color& background, const hittable& world, in
         color attenuation;
         color emitted = rec.mat_ptr->emitted(r, rec, rec.u, rec.v, rec.p);
 
-        float pdf;
+        float pdf_val;
         color albedo;
 
-        if (!rec.mat_ptr->scatter(r, rec, albedo, scattered, pdf))
+        if (!rec.mat_ptr->scatter(r, rec, albedo, scattered, pdf_val))
             return emitted;
 
-        /////////////////////////////////
-        auto on_light = point3(random_float(213, 343), 554, random_float(227, 332));
-        auto to_light = on_light - rec.p;
-        auto distance_squared = to_light.length_squared();
-        to_light = unit_vector(to_light);
+        auto p0 = make_shared<hittable_pdf>(lights, rec.p);
+        auto p1 = make_shared<cosine_pdf>(rec.normal);
+        mixture_pdf mixed_pdf(p0, p1);
 
-        if (dot(to_light, rec.normal) < 0)
-            return emitted;
-
-        float light_area = (343 - 213) * (332 - 227);
-        auto light_cosine = fabs(to_light.y());
-        if (light_cosine < 0.000001)
-            return emitted;
-
-        pdf = distance_squared / (light_cosine * light_area);
-        scattered = ray(rec.p, to_light, r.time());
-        /////////////////////////////////////
-
-
-
+        scattered = ray(rec.p, mixed_pdf.generate(), r.time());
+        pdf_val = mixed_pdf.value(scattered.direction());
 
         return emitted
             + albedo * rec.mat_ptr->scattering_pdf(r, rec, scattered)
-            * ray_color(scattered, background, world, depth - 1) / pdf;
+            * ray_color(scattered, background, world, lights, depth - 1) / pdf_val;
 
 }
 
@@ -349,6 +337,7 @@ hittable_list final_scene() {
 
 bool render_tile(
     const hittable_list& world,
+    shared_ptr<hittable>& lights,
     const camera& cam,
     uint8_t* image,
     int image_width,
@@ -378,7 +367,7 @@ bool render_tile(
                 auto u = (i + random_float()) / (image_width - 1);
                 auto v = (j + random_float()) / (image_height - 1);
                 ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, background, world, max_depth);
+                pixel_color += ray_color(r, background, world, lights, max_depth);
             }
 
             putPixel(image, samples_per_pixel, pixel_color, i, j, image_width);
@@ -409,6 +398,8 @@ int main() {
     auto vfov = 40.0f;
     auto aperture = 0.0f;
     color background(0, 0, 0);
+
+    shared_ptr<hittable> lights;
 
     switch (6) {
     case 1:
@@ -453,11 +444,13 @@ int main() {
         world = cornell_box();
         aspect_ratio = 1.0f;
         image_width = 600;
-        samples_per_pixel = 100;
+        samples_per_pixel = 1000;
         background = color(0.0f, 0.0f, 0.0f);
         lookfrom = point3(278.0f, 278.0f, -800.0f);
         lookat = point3(278.0f, 278.0f, 0.0f);
         vfov = 40.0f;
+        lights =
+            make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>());
         break;
     case 7:
         world = cornell_smoke();
@@ -519,8 +512,8 @@ int main() {
             if (yoffset + tileheight > image_height) {
                 tileheight = image_height - yoffset;
             }
-            jobs.push_back(tasks.queue([&world, &cam, image, image_width, image_height, max_depth, background, samples_per_pixel, xoffset, yoffset, tilewidth, tileheight]()->bool {
-                return render_tile(world, cam, image, image_width,
+            jobs.push_back(tasks.queue([&world, &lights, &cam, image, image_width, image_height, max_depth, background, samples_per_pixel, xoffset, yoffset, tilewidth, tileheight]()->bool {
+                return render_tile(world, lights, cam, image, image_width,
                     image_height,
                     max_depth,
                     background,
