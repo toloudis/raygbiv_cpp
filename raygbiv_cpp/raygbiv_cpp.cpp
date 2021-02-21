@@ -27,8 +27,11 @@
 #include <vector>
 
 color ray_color(
-    const ray& r, const color& background, const hittable& world,
-    shared_ptr<hittable>& lights, int depth
+    const ray& r, 
+    const color& background, 
+    const hittable& world,
+    shared_ptr<hittable>& lights,
+    int depth
 ) {
     hit_record rec;
 
@@ -40,27 +43,31 @@ color ray_color(
         if (!world.hit(r, RAY_EPSILON, infinity, rec))
             return background;
 
-        ray scattered;
-        color attenuation;
+        scatter_record srec;
         color emitted = rec.mat_ptr->emitted(r, rec, rec.u, rec.v, rec.p);
-
-        float pdf_val;
-        color albedo;
-
-        if (!rec.mat_ptr->scatter(r, rec, albedo, scattered, pdf_val))
+        // returns the scattering pdf for this material inside of srec
+        if (!rec.mat_ptr->scatter(r, rec, srec))
             return emitted;
 
-        auto p0 = make_shared<hittable_pdf>(lights, rec.p);
-        auto p1 = make_shared<cosine_pdf>(rec.normal);
-        mixture_pdf mixed_pdf(p0, p1);
+        // implicitly sampled specular ray
+        if (srec.is_specular) {
+            return srec.attenuation
+                * ray_color(srec.specular_ray, background, world, lights, depth - 1);
+        }
 
-        scattered = ray(rec.p, mixed_pdf.generate(), r.time());
-        pdf_val = mixed_pdf.value(scattered.direction());
+        auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+
+        // 50-50 chance of sampling toward light or toward scatter direction
+        mixture_pdf p(light_ptr, srec.pdf_ptr);
+
+        // generate sample from MIS pdf
+        ray scattered = ray(rec.p, p.generate(), r.time());
+        // evaluate pdf(generated sample)
+        auto pdf_val = p.value(scattered.direction());
 
         return emitted
-            + albedo * rec.mat_ptr->scattering_pdf(r, rec, scattered)
+            + srec.attenuation * rec.mat_ptr->scattering_pdf(r, rec, scattered)
             * ray_color(scattered, background, world, lights, depth - 1) / pdf_val;
-
 }
 
 void putPixel(uint8_t* image, int samples_per_pixel, color& pixel_color, int i, int j, int image_width)
@@ -195,15 +202,19 @@ hittable_list cornell_box() {
     objects.add(make_shared<xz_rect>(0.0f, 555.0f, 0.0f, 555.0f, 0.0f, white));
     objects.add(make_shared<xy_rect>(0.0f, 555.0f, 0.0f, 555.0f, 555.0f, white));
 
-    shared_ptr<hittable> box1 = make_shared<box>(point3(0, 0, 0), point3(165, 330, 165), white);
+    shared_ptr<material> aluminum = make_shared<metal>(color(0.8f, 0.85f, 0.88f), 0.0f);
+    shared_ptr<hittable> box1 = make_shared<box>(point3(0, 0, 0), point3(165, 330, 165), aluminum);
     box1 = make_shared<rotate_y>(box1, 15.0f);
     box1 = make_shared<translate>(box1, vec3(265, 0, 295));
     objects.add(box1);
+    
+    auto glass = make_shared<dielectric>(1.5f);
+    objects.add(make_shared<sphere>(point3(190, 90, 190), 90.0f, glass));
 
-    shared_ptr<hittable> box2 = make_shared<box>(point3(0, 0, 0), point3(165, 165, 165), white);
-    box2 = make_shared<rotate_y>(box2, -18.0f);
-    box2 = make_shared<translate>(box2, vec3(130, 0, 65));
-    objects.add(box2);
+    //shared_ptr<hittable> box2 = make_shared<box>(point3(0, 0, 0), point3(165, 165, 165), white);
+    //box2 = make_shared<rotate_y>(box2, -18.0f);
+    //box2 = make_shared<translate>(box2, vec3(130, 0, 65));
+    //objects.add(box2);
 
     return objects;
 }
@@ -449,8 +460,15 @@ int main() {
         lookfrom = point3(278.0f, 278.0f, -800.0f);
         lookat = point3(278.0f, 278.0f, 0.0f);
         vfov = 40.0f;
-        lights =
-            make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>());
+        //lights =
+          //  make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>());
+
+        //lights =
+         //   make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>());
+
+        lights = make_shared<hittable_list>();
+        ((hittable_list*)lights.get())->add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>()));
+        ((hittable_list*)lights.get())->add(make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>()));
         break;
     case 7:
         world = cornell_smoke();

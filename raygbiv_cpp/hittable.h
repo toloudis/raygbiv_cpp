@@ -27,10 +27,13 @@ class hittable {
 public:
     virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const = 0;
     virtual bool bounding_box(float time0, float time1, aabb& output_box) const = 0;
+
+    // evaluate the pdf of the ray from o toward v
     virtual float pdf_value(const point3& o, const vec3& v) const {
         return 0.0;
     }
 
+    // return a direction from o to a (uniform?) random point on the hittable
     virtual vec3 random(const vec3& o) const {
         return vec3(1, 0, 0);
     }

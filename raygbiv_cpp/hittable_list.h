@@ -23,6 +23,9 @@ public:
         const ray& r, float t_min, float t_max, hit_record& rec) const override;
     virtual bool bounding_box(
         float time0, float time1, aabb& output_box) const override;
+    virtual float pdf_value(const point3& o, const vec3& v) const override;
+    virtual vec3 random(const vec3& o) const override;
+
 public:
     std::vector<shared_ptr<hittable>> objects;
 };
@@ -56,6 +59,24 @@ bool hittable_list::bounding_box(float time0, float time1, aabb& output_box) con
     }
 
     return true;
+}
+
+float hittable_list::pdf_value(const point3& o, const vec3& v) const {
+    // uniform mixture (could these weights be proportional to the solid angle subtended? do the underlying pdfs account for that?)
+    auto weight = 1.0f / objects.size();
+    auto sum = 0.0f;
+
+    for (const auto& object : objects)
+        sum += weight * object->pdf_value(o, v);
+
+    return sum;
+}
+
+vec3 hittable_list::random(const vec3& o) const {
+    // choose random object, then generate random point on object?
+    auto int_size = static_cast<int>(objects.size());
+    auto index = random_int(0, int_size - 1);
+    return objects[index]->random(o);
 }
 
 #endif

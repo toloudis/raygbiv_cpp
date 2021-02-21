@@ -7,7 +7,10 @@ class pdf {
 public:
     virtual ~pdf() {}
 
+    // evaluate pdf at this vec3
     virtual float value(const vec3& direction) const = 0;
+
+    // generate a random sample vec3 that conforms to this pdf distribution
     virtual vec3 generate() const = 0;
 };
 
@@ -66,4 +69,5 @@ public:
 public:
     shared_ptr<pdf> p[2];
 };
+
 #endif
