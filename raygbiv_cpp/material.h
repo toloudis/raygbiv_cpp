@@ -15,6 +15,8 @@ struct scatter_record {
     bool is_specular;
     color attenuation;
     shared_ptr<pdf> pdf_ptr;
+
+    scatter_record() :is_specular(false) {}
 };
 
 class material {

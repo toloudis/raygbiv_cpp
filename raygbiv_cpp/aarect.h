@@ -9,7 +9,7 @@
 
 class xy_rect : public hittable {
 public:
-    xy_rect() {}
+    xy_rect() : x0(0), x1(0), y0(0), y1(0), k(0) {}
 
     xy_rect(float _x0, float _x1, float _y0, float _y1, float _k,
         shared_ptr<material> mat)
@@ -49,7 +49,7 @@ bool xy_rect::hit(const ray& r, float t_min, float t_max, hit_record& rec) const
 
 class xz_rect : public hittable {
 public:
-    xz_rect() {}
+    xz_rect() : x0(0), x1(0), z0(0), z1(0), k(0) {}
 
     xz_rect(float _x0, float _x1, float _z0, float _z1, float _k,
         shared_ptr<material> mat)
@@ -87,7 +87,7 @@ public:
 
 class yz_rect : public hittable {
 public:
-    yz_rect() {}
+    yz_rect():y0(0), y1(0), z0(0), z1(0), k(0) {}
 
     yz_rect(float _y0, float _y1, float _z0, float _z1, float _k,
         shared_ptr<material> mat)

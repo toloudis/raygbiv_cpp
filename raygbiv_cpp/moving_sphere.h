@@ -10,7 +10,7 @@
 
 class moving_sphere : public hittable {
 public:
-    moving_sphere() {}
+    moving_sphere():time0(0), time1(0), radius(0) {}
     moving_sphere(
         point3 cen0, point3 cen1, float _time0, float _time1, float r, shared_ptr<material> m)
         : center0(cen0), center1(cen1), time0(_time0), time1(_time1), radius(r), mat_ptr(m)

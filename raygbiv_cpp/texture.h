@@ -54,7 +54,7 @@ public:
 
 class noise_texture : public texture {
 public:
-    noise_texture() {}
+    noise_texture():scale(0) {}
     noise_texture(float sc) : scale(sc) {}
 
     virtual color value(float u, float v, const point3& p) const override {
@@ -73,7 +73,8 @@ public:
     image_texture()
         : data(nullptr), width(0), height(0), bytes_per_scanline(0) {}
 
-    image_texture(const char* filename) {
+    image_texture(const char* filename):width(0), height(0), bytes_per_scanline(0) {
+
         auto components_per_pixel = bytes_per_pixel;
 
         data = stbi_load(
