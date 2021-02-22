@@ -6,24 +6,29 @@
 #include "hittable.h"
 #include "vec3.h"
 
-class sphere : public hittable {
-public:
-    sphere():radius(0) {}
+class sphere : public hittable
+{
+  public:
+    sphere()
+      : radius(0)
+    {}
     sphere(point3 cen, float r, shared_ptr<material> m)
-        : center(cen), radius(r), mat_ptr(m) {};
-    virtual bool hit(
-        const ray& r, float t_min, float t_max, hit_record& rec) const override;
+      : center(cen)
+      , radius(r)
+      , mat_ptr(m){};
+    virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override;
     virtual bool bounding_box(float time0, float time1, aabb& output_box) const override;
     float pdf_value(const point3& o, const vec3& v) const override;
     vec3 random(const point3& o) const override;
 
-public:
+  public:
     point3 center;
     float radius;
     shared_ptr<material> mat_ptr;
 
-private:
-    static void get_sphere_uv(const point3& p, float& u, float& v) {
+  private:
+    static void get_sphere_uv(const point3& p, float& u, float& v)
+    {
         // p: a given point on the sphere of radius one, centered at the origin.
         // u: returned value [0,1] of angle around the Y axis from X=-1.
         // v: returned value [0,1] of angle from Y=-1 to Y=+1.
@@ -39,14 +44,17 @@ private:
     }
 };
 
-bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
+bool
+sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const
+{
     vec3 oc = r.origin() - center;
     auto a = r.direction().length_squared();
     auto half_b = dot(oc, r.direction());
     auto c = oc.length_squared() - radius * radius;
 
     auto discriminant = half_b * half_b - a * c;
-    if (discriminant < 0) return false;
+    if (discriminant < 0)
+        return false;
     auto sqrtd = sqrt(discriminant);
 
     // Find the nearest root that lies in the acceptable range.
@@ -67,14 +75,16 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const 
     return true;
 }
 
-bool sphere::bounding_box(float time0, float time1, aabb& output_box) const {
-    output_box = aabb(
-        center - vec3(radius, radius, radius),
-        center + vec3(radius, radius, radius));
+bool
+sphere::bounding_box(float time0, float time1, aabb& output_box) const
+{
+    output_box = aabb(center - vec3(radius, radius, radius), center + vec3(radius, radius, radius));
     return true;
 }
 
-float sphere::pdf_value(const point3& o, const vec3& v) const {
+float
+sphere::pdf_value(const point3& o, const vec3& v) const
+{
     hit_record rec;
     if (!this->hit(ray(o, v), RAY_EPSILON, infinity, rec))
         return 0;
@@ -82,10 +92,12 @@ float sphere::pdf_value(const point3& o, const vec3& v) const {
     auto cos_theta_max = sqrt(1 - radius * radius / (center - o).length_squared());
     auto solid_angle = 2 * pi * (1 - cos_theta_max);
 
-    return  1 / solid_angle;
+    return 1 / solid_angle;
 }
 
-vec3 sphere::random(const point3& o) const {
+vec3
+sphere::random(const point3& o) const
+{
     vec3 direction = center - o;
     auto distance_squared = direction.length_squared();
     onb uvw;

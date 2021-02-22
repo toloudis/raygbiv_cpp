@@ -8,29 +8,30 @@
 #include <memory>
 #include <vector>
 
-using std::shared_ptr;
 using std::make_shared;
+using std::shared_ptr;
 
-class hittable_list : public hittable {
-public:
+class hittable_list : public hittable
+{
+  public:
     hittable_list() {}
     hittable_list(shared_ptr<hittable> object) { add(object); }
 
     void clear() { objects.clear(); }
     void add(shared_ptr<hittable> object) { objects.push_back(object); }
 
-    virtual bool hit(
-        const ray& r, float t_min, float t_max, hit_record& rec) const override;
-    virtual bool bounding_box(
-        float time0, float time1, aabb& output_box) const override;
+    virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override;
+    virtual bool bounding_box(float time0, float time1, aabb& output_box) const override;
     virtual float pdf_value(const point3& o, const vec3& v) const override;
     virtual vec3 random(const vec3& o) const override;
 
-public:
+  public:
     std::vector<shared_ptr<hittable>> objects;
 };
 
-bool hittable_list::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
+bool
+hittable_list::hit(const ray& r, float t_min, float t_max, hit_record& rec) const
+{
     hit_record temp_rec;
     bool hit_anything = false;
     auto closest_so_far = t_max;
@@ -46,14 +47,18 @@ bool hittable_list::hit(const ray& r, float t_min, float t_max, hit_record& rec)
     return hit_anything;
 }
 
-bool hittable_list::bounding_box(float time0, float time1, aabb& output_box) const {
-    if (objects.empty()) return false;
+bool
+hittable_list::bounding_box(float time0, float time1, aabb& output_box) const
+{
+    if (objects.empty())
+        return false;
 
     aabb temp_box;
     bool first_box = true;
 
     for (const auto& object : objects) {
-        if (!object->bounding_box(time0, time1, temp_box)) return false;
+        if (!object->bounding_box(time0, time1, temp_box))
+            return false;
         output_box = first_box ? temp_box : surrounding_box(output_box, temp_box);
         first_box = false;
     }
@@ -61,8 +66,11 @@ bool hittable_list::bounding_box(float time0, float time1, aabb& output_box) con
     return true;
 }
 
-float hittable_list::pdf_value(const point3& o, const vec3& v) const {
-    // uniform mixture (could these weights be proportional to the solid angle subtended? do the underlying pdfs account for that?)
+float
+hittable_list::pdf_value(const point3& o, const vec3& v) const
+{
+    // uniform mixture (could these weights be proportional to the solid angle subtended? do the underlying pdfs account
+    // for that?)
     auto weight = 1.0f / objects.size();
     auto sum = 0.0f;
 
@@ -72,7 +80,9 @@ float hittable_list::pdf_value(const point3& o, const vec3& v) const {
     return sum;
 }
 
-vec3 hittable_list::random(const vec3& o) const {
+vec3
+hittable_list::random(const vec3& o) const
+{
     // choose random object, then generate random point on object?
     auto int_size = static_cast<int>(objects.size());
     auto index = random_int(0, int_size - 1);

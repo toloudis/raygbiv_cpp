@@ -3,12 +3,13 @@
 #ifndef HITTABLE_H
 #define HITTABLE_H
 
-#include "rtweekend.h"
 #include "aabb.h"
+#include "rtweekend.h"
 
 class material;
 
-struct hit_record {
+struct hit_record
+{
     point3 p;
     vec3 normal;
     shared_ptr<material> mat_ptr;
@@ -17,46 +18,53 @@ struct hit_record {
     float v;
     bool front_face;
 
-    hit_record():t(0),u(0),v(0),front_face(true) {}
+    hit_record()
+      : t(0)
+      , u(0)
+      , v(0)
+      , front_face(true)
+    {}
 
-    inline void set_face_normal(const ray& r, const vec3& outward_normal) {
+    inline void set_face_normal(const ray& r, const vec3& outward_normal)
+    {
         front_face = dot(r.direction(), outward_normal) < 0;
         normal = front_face ? outward_normal : -outward_normal;
     }
 };
 
-class hittable {
-public:
+class hittable
+{
+  public:
     virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const = 0;
     virtual bool bounding_box(float time0, float time1, aabb& output_box) const = 0;
 
     // evaluate the pdf of the ray from o toward v
-    virtual float pdf_value(const point3& o, const vec3& v) const {
-        return 0.0;
-    }
+    virtual float pdf_value(const point3& o, const vec3& v) const { return 0.0; }
 
     // return a direction from o to a (uniform?) random point on the hittable
-    virtual vec3 random(const vec3& o) const {
-        return vec3(1, 0, 0);
-    }
+    virtual vec3 random(const vec3& o) const { return vec3(1, 0, 0); }
 };
 
-class translate : public hittable {
-public:
+class translate : public hittable
+{
+  public:
     translate(shared_ptr<hittable> p, const vec3& displacement)
-        : ptr(p), offset(displacement) {}
+      : ptr(p)
+      , offset(displacement)
+    {}
 
-    virtual bool hit(
-        const ray& r, float t_min, float t_max, hit_record& rec) const override;
+    virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override;
 
     virtual bool bounding_box(float time0, float time1, aabb& output_box) const override;
 
-public:
+  public:
     shared_ptr<hittable> ptr;
     vec3 offset;
 };
 
-bool translate::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
+bool
+translate::hit(const ray& r, float t_min, float t_max, hit_record& rec) const
+{
     ray moved_r(r.origin() - offset, r.direction(), r.time());
     if (!ptr->hit(moved_r, t_min, t_max, rec))
         return false;
@@ -67,30 +75,31 @@ bool translate::hit(const ray& r, float t_min, float t_max, hit_record& rec) con
     return true;
 }
 
-bool translate::bounding_box(float time0, float time1, aabb& output_box) const {
+bool
+translate::bounding_box(float time0, float time1, aabb& output_box) const
+{
     if (!ptr->bounding_box(time0, time1, output_box))
         return false;
 
-    output_box = aabb(
-        output_box.min() + offset,
-        output_box.max() + offset);
+    output_box = aabb(output_box.min() + offset, output_box.max() + offset);
 
     return true;
 }
 
-class rotate_y : public hittable {
-public:
+class rotate_y : public hittable
+{
+  public:
     rotate_y(shared_ptr<hittable> p, float angle);
 
-    virtual bool hit(
-        const ray& r, float t_min, float t_max, hit_record& rec) const override;
+    virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override;
 
-    virtual bool bounding_box(float time0, float time1, aabb& output_box) const override {
+    virtual bool bounding_box(float time0, float time1, aabb& output_box) const override
+    {
         output_box = bbox;
         return hasbox;
     }
 
-public:
+  public:
     shared_ptr<hittable> ptr;
     float sin_theta;
     float cos_theta;
@@ -98,7 +107,9 @@ public:
     aabb bbox;
 };
 
-rotate_y::rotate_y(shared_ptr<hittable> p, float angle) : ptr(p) {
+rotate_y::rotate_y(shared_ptr<hittable> p, float angle)
+  : ptr(p)
+{
     auto radians = degrees_to_radians(angle);
     sin_theta = sin(radians);
     cos_theta = cos(radians);
@@ -130,7 +141,9 @@ rotate_y::rotate_y(shared_ptr<hittable> p, float angle) : ptr(p) {
     bbox = aabb(min, max);
 }
 
-bool rotate_y::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
+bool
+rotate_y::hit(const ray& r, float t_min, float t_max, hit_record& rec) const
+{
     auto origin = r.origin();
     auto direction = r.direction();
 
@@ -160,12 +173,15 @@ bool rotate_y::hit(const ray& r, float t_min, float t_max, hit_record& rec) cons
     return true;
 }
 
-class flip_face : public hittable {
-public:
-    flip_face(shared_ptr<hittable> p) : ptr(p) {}
+class flip_face : public hittable
+{
+  public:
+    flip_face(shared_ptr<hittable> p)
+      : ptr(p)
+    {}
 
-    virtual bool hit(
-        const ray& r, float t_min, float t_max, hit_record& rec) const override {
+    virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override
+    {
 
         if (!ptr->hit(r, t_min, t_max, rec))
             return false;
@@ -174,12 +190,13 @@ public:
         return true;
     }
 
-    virtual bool bounding_box(float time0, float time1, aabb& output_box) const override {
+    virtual bool bounding_box(float time0, float time1, aabb& output_box) const override
+    {
         return ptr->bounding_box(time0, time1, output_box);
     }
 
-public:
+  public:
     shared_ptr<hittable> ptr;
-}; 
+};
 
 #endif

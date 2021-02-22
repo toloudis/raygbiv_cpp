@@ -3,73 +3,75 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "rtweekend.h"
 #include "onb.h"
 #include "pdf.h"
+#include "rtweekend.h"
 #include "texture.h"
 
 struct hit_record;
 
-struct scatter_record {
+struct scatter_record
+{
     ray specular_ray;
     bool is_specular;
     color attenuation;
     shared_ptr<pdf> pdf_ptr;
 
-    scatter_record() :is_specular(false) {}
+    scatter_record()
+      : is_specular(false)
+    {}
 };
 
-class material {
-public:
-    virtual color emitted(
-        const ray& r_in, const hit_record& rec, float u, float v, const point3& p
-    ) const {
+class material
+{
+  public:
+    virtual color emitted(const ray& r_in, const hit_record& rec, float u, float v, const point3& p) const
+    {
         return color(0, 0, 0);
     }
-    virtual bool scatter(
-        const ray& r_in, const hit_record& rec, scatter_record& srec
-    ) const {
-        return false;
-    }
+    virtual bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const { return false; }
 
-    virtual float scattering_pdf(
-        const ray& r_in, const hit_record& rec, const ray& scattered
-    ) const {
-        return 0;
-    }
+    virtual float scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const { return 0; }
 };
 
-class lambertian : public material {
-public:
-    lambertian(const color& a) : albedo(make_shared<solid_color>(a)) {}
-    lambertian(shared_ptr<texture> a) : albedo(a) {}
+class lambertian : public material
+{
+  public:
+    lambertian(const color& a)
+      : albedo(make_shared<solid_color>(a))
+    {}
+    lambertian(shared_ptr<texture> a)
+      : albedo(a)
+    {}
 
-    virtual bool scatter(
-        const ray& r_in, const hit_record& rec, scatter_record& srec
-    ) const override {
+    virtual bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override
+    {
         srec.is_specular = false;
         srec.attenuation = albedo->value(rec.u, rec.v, rec.p);
         srec.pdf_ptr = make_shared<cosine_pdf>(rec.normal);
         return true;
     }
 
-    float scattering_pdf(
-        const ray& r_in, const hit_record& rec, const ray& scattered
-    ) const {
+    float scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const
+    {
         auto cosine = dot(rec.normal, unit_vector(scattered.direction()));
         return cosine < 0 ? 0 : cosine / pi;
     }
-public:
+
+  public:
     shared_ptr<texture> albedo;
 };
 
-class metal : public material {
-public:
-    metal(const color& a, float f) : albedo(a), fuzz(f < 1 ? f : 1) {}
+class metal : public material
+{
+  public:
+    metal(const color& a, float f)
+      : albedo(a)
+      , fuzz(f < 1 ? f : 1)
+    {}
 
-    virtual bool scatter(
-        const ray& r_in, const hit_record& rec, scatter_record& srec
-    ) const override {
+    virtual bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override
+    {
         vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
         srec.specular_ray = ray(rec.p, reflected + fuzz * random_in_unit_sphere(), r_in.time());
         srec.attenuation = albedo;
@@ -78,18 +80,20 @@ public:
         return true;
     }
 
-public:
+  public:
     color albedo;
     float fuzz;
 };
 
-class dielectric : public material {
-public:
-    dielectric(float index_of_refraction) : ir(index_of_refraction) {}
+class dielectric : public material
+{
+  public:
+    dielectric(float index_of_refraction)
+      : ir(index_of_refraction)
+    {}
 
-    virtual bool scatter(
-        const ray& r_in, const hit_record& rec, scatter_record& srec
-    ) const override {
+    virtual bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override
+    {
         srec.is_specular = true;
         srec.pdf_ptr = nullptr;
         srec.attenuation = color(1.0, 1.0, 1.0);
@@ -111,11 +115,12 @@ public:
         return true;
     }
 
-public:
+  public:
     float ir; // Index of Refraction
 
-private:
-    static float reflectance(float cosine, float ref_idx) {
+  private:
+    static float reflectance(float cosine, float ref_idx)
+    {
         // Use Schlick's approximation for reflectance.
         auto r0 = (1.0f - ref_idx) / (1.0f + ref_idx);
         r0 = r0 * r0;
@@ -123,44 +128,51 @@ private:
     }
 };
 
-class diffuse_light : public material {
-public:
-    diffuse_light(shared_ptr<texture> a) : emit(a) {}
-    diffuse_light(color c) : emit(make_shared<solid_color>(c)) {}
+class diffuse_light : public material
+{
+  public:
+    diffuse_light(shared_ptr<texture> a)
+      : emit(a)
+    {}
+    diffuse_light(color c)
+      : emit(make_shared<solid_color>(c))
+    {}
 
-    virtual bool scatter(
-        const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered
-    ) const {
+    virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const
+    {
         return false;
     }
 
-    virtual color emitted(
-        const ray& r_in, const hit_record& rec, float u, float v, const point3& p
-    ) const override {
+    virtual color emitted(const ray& r_in, const hit_record& rec, float u, float v, const point3& p) const override
+    {
         if (rec.front_face)
             return emit->value(u, v, p);
         else
             return color(0, 0, 0);
     }
 
-public:
+  public:
     shared_ptr<texture> emit;
 };
 
-class isotropic : public material {
-public:
-    isotropic(color c) : albedo(make_shared<solid_color>(c)) {}
-    isotropic(shared_ptr<texture> a) : albedo(a) {}
+class isotropic : public material
+{
+  public:
+    isotropic(color c)
+      : albedo(make_shared<solid_color>(c))
+    {}
+    isotropic(shared_ptr<texture> a)
+      : albedo(a)
+    {}
 
-    virtual bool scatter(
-        const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered
-    ) const {
+    virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const
+    {
         scattered = ray(rec.p, random_in_unit_sphere(), r_in.time());
         attenuation = albedo->value(rec.u, rec.v, rec.p);
         return true;
     }
 
-public:
+  public:
     shared_ptr<texture> albedo;
 };
 

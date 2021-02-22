@@ -26,51 +26,46 @@
 #include <sstream>
 #include <vector>
 
-color ray_color(
-    const ray& r, 
-    const color& background, 
-    const hittable& world,
-    shared_ptr<hittable>& lights,
-    int depth
-) {
+color
+ray_color(const ray& r, const color& background, const hittable& world, shared_ptr<hittable>& lights, int depth)
+{
     hit_record rec;
 
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if (depth <= 0)
         return color(0.0f, 0.0f, 0.0f);
-    
-        // If the ray hits nothing, return the background color.
-        if (!world.hit(r, RAY_EPSILON, infinity, rec))
-            return background;
 
-        scatter_record srec;
-        color emitted = rec.mat_ptr->emitted(r, rec, rec.u, rec.v, rec.p);
-        // returns the scattering pdf for this material inside of srec
-        if (!rec.mat_ptr->scatter(r, rec, srec))
-            return emitted;
+    // If the ray hits nothing, return the background color.
+    if (!world.hit(r, RAY_EPSILON, infinity, rec))
+        return background;
 
-        // implicitly sampled specular ray
-        if (srec.is_specular) {
-            return srec.attenuation
-                * ray_color(srec.specular_ray, background, world, lights, depth - 1);
-        }
+    scatter_record srec;
+    color emitted = rec.mat_ptr->emitted(r, rec, rec.u, rec.v, rec.p);
+    // returns the scattering pdf for this material inside of srec
+    if (!rec.mat_ptr->scatter(r, rec, srec))
+        return emitted;
 
-        auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+    // implicitly sampled specular ray
+    if (srec.is_specular) {
+        return srec.attenuation * ray_color(srec.specular_ray, background, world, lights, depth - 1);
+    }
 
-        // 50-50 chance of sampling toward light or toward scatter direction
-        mixture_pdf p(light_ptr, srec.pdf_ptr);
+    auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
 
-        // generate sample from MIS pdf
-        ray scattered = ray(rec.p, p.generate(), r.time());
-        // evaluate pdf(generated sample)
-        auto pdf_val = p.value(scattered.direction());
+    // 50-50 chance of sampling toward light or toward scatter direction
+    mixture_pdf p(light_ptr, srec.pdf_ptr);
 
-        return emitted
-            + srec.attenuation * rec.mat_ptr->scattering_pdf(r, rec, scattered)
-            * ray_color(scattered, background, world, lights, depth - 1) / pdf_val;
+    // generate sample from MIS pdf
+    ray scattered = ray(rec.p, p.generate(), r.time());
+    // evaluate pdf(generated sample)
+    auto pdf_val = p.value(scattered.direction());
+
+    return emitted + srec.attenuation * rec.mat_ptr->scattering_pdf(r, rec, scattered) *
+                       ray_color(scattered, background, world, lights, depth - 1) / pdf_val;
 }
 
-void putPixel(uint8_t* image, int samples_per_pixel, color& pixel_color, int i, int j, int image_width)
+void
+putPixel(uint8_t* image, int samples_per_pixel, color& pixel_color, int i, int j, int image_width)
 {
     auto r = pixel_color.x();
     auto g = pixel_color.y();
@@ -92,7 +87,9 @@ void putPixel(uint8_t* image, int samples_per_pixel, color& pixel_color, int i, 
     image[2 + i * 3 + j * (image_width * 3)] = (uint8_t)ib;
 }
 
-hittable_list two_spheres() {
+hittable_list
+two_spheres()
+{
     hittable_list objects;
 
     auto checker = make_shared<checker_texture>(color(0.2f, 0.3f, 0.1f), color(0.9f, 0.9f, 0.9f));
@@ -103,12 +100,13 @@ hittable_list two_spheres() {
     return objects;
 }
 
-hittable_list random_scene() {
+hittable_list
+random_scene()
+{
     hittable_list world;
 
     auto checker = make_shared<checker_texture>(color(0.2f, 0.3f, 0.1f), color(0.9f, 0.9f, 0.9f));
     world.add(make_shared<sphere>(point3(0.0f, -1000.0f, 0.0f), 1000.0f, make_shared<lambertian>(checker)));
-
 
     for (int a = -11; a < 11; a++) {
         for (int b = -11; b < 11; b++) {
@@ -123,17 +121,14 @@ hittable_list random_scene() {
                     auto albedo = color::random() * color::random();
                     sphere_material = make_shared<lambertian>(albedo);
                     auto center2 = center + vec3(0.0f, random_float(0.0f, 0.5f), 0.0f);
-                    world.add(make_shared<moving_sphere>(
-                        center, center2, 0.0f, 1.0f, 0.2f, sphere_material));
-                }
-                else if (choose_mat < 0.95) {
+                    world.add(make_shared<moving_sphere>(center, center2, 0.0f, 1.0f, 0.2f, sphere_material));
+                } else if (choose_mat < 0.95) {
                     // metal
                     auto albedo = color::random(0.5, 1);
                     auto fuzz = random_float(0, 0.5);
                     sphere_material = make_shared<metal>(albedo, fuzz);
                     world.add(make_shared<sphere>(center, 0.2f, sphere_material));
-                }
-                else {
+                } else {
                     // glass
                     sphere_material = make_shared<dielectric>(1.5f);
                     world.add(make_shared<sphere>(center, 0.2f, sphere_material));
@@ -154,7 +149,9 @@ hittable_list random_scene() {
     return world;
 }
 
-hittable_list two_perlin_spheres() {
+hittable_list
+two_perlin_spheres()
+{
     hittable_list objects;
 
     auto pertext = make_shared<noise_texture>(4.0f);
@@ -164,7 +161,9 @@ hittable_list two_perlin_spheres() {
     return objects;
 }
 
-hittable_list earth() {
+hittable_list
+earth()
+{
     auto earth_texture = make_shared<image_texture>("earthmap.jpg");
     auto earth_surface = make_shared<lambertian>(earth_texture);
     auto globe = make_shared<sphere>(point3(0, 0, 0), 2.0f, earth_surface);
@@ -172,7 +171,9 @@ hittable_list earth() {
     return hittable_list(globe);
 }
 
-hittable_list simple_light() {
+hittable_list
+simple_light()
+{
     hittable_list objects;
 
     auto pertext = make_shared<noise_texture>(4.0f);
@@ -182,12 +183,14 @@ hittable_list simple_light() {
     auto difflight = make_shared<diffuse_light>(color(4, 4, 4));
     objects.add(make_shared<xy_rect>(3.0f, 5.0f, 1.0f, 3.0f, -2.0f, difflight));
 
-    objects.add(make_shared<sphere>(point3(0.0f, 7.0f, 0.0f), 2.0f,difflight));
+    objects.add(make_shared<sphere>(point3(0.0f, 7.0f, 0.0f), 2.0f, difflight));
 
     return objects;
 }
 
-hittable_list cornell_box() {
+hittable_list
+cornell_box()
+{
     hittable_list objects;
 
     auto red = make_shared<lambertian>(color(.65f, .05f, .05f));
@@ -207,14 +210,14 @@ hittable_list cornell_box() {
     box1 = make_shared<rotate_y>(box1, 15.0f);
     box1 = make_shared<translate>(box1, vec3(265, 0, 295));
     objects.add(box1);
-    
+
     auto glass = make_shared<dielectric>(1.5f);
     objects.add(make_shared<sphere>(point3(190, 90, 190), 90.0f, glass));
 
-    //shared_ptr<hittable> box2 = make_shared<box>(point3(0, 0, 0), point3(165, 165, 165), white);
-    //box2 = make_shared<rotate_y>(box2, -18.0f);
-    //box2 = make_shared<translate>(box2, vec3(130, 0, 65));
-    //objects.add(box2);
+    // shared_ptr<hittable> box2 = make_shared<box>(point3(0, 0, 0), point3(165, 165, 165), white);
+    // box2 = make_shared<rotate_y>(box2, -18.0f);
+    // box2 = make_shared<translate>(box2, vec3(130, 0, 65));
+    // objects.add(box2);
 
     return objects;
 }
@@ -247,7 +250,9 @@ hittable_list cornell_box() {
     return objects;
 }
 #endif
-hittable_list cornell_smoke() {
+hittable_list
+cornell_smoke()
+{
     hittable_list objects;
 
     auto red = make_shared<lambertian>(color(.65f, .05f, .05f));
@@ -276,7 +281,9 @@ hittable_list cornell_smoke() {
     return objects;
 }
 
-hittable_list final_scene() {
+hittable_list
+final_scene()
+{
     hittable_list boxes1;
     auto ground = make_shared<lambertian>(color(0.48f, 0.83f, 0.53f));
 
@@ -308,9 +315,7 @@ hittable_list final_scene() {
     objects.add(make_shared<moving_sphere>(center1, center2, 0.0f, 1.0f, 50.0f, moving_sphere_material));
 
     objects.add(make_shared<sphere>(point3(260, 150, 45), 50.0f, make_shared<dielectric>(1.5f)));
-    objects.add(make_shared<sphere>(
-        point3(0, 150, 145), 50.0f, make_shared<metal>(color(0.8f, 0.8f, 0.9f), 1.0f)
-        ));
+    objects.add(make_shared<sphere>(point3(0, 150, 145), 50.0f, make_shared<metal>(color(0.8f, 0.8f, 0.9f), 1.0f)));
 
     auto boundary = make_shared<sphere>(point3(360, 150, 145), 70.0f, make_shared<dielectric>(1.5f));
     objects.add(boundary);
@@ -330,37 +335,32 @@ hittable_list final_scene() {
         boxes2.add(make_shared<sphere>(point3::random(0, 165), 10.0f, white));
     }
 
-    objects.add(make_shared<translate>(
-        make_shared<rotate_y>(
-            make_shared<bvh_node>(boxes2, 0.0f, 1.0f), 15.0f),
-        vec3(-100, 270, 395)
-        )
-    );
+    objects.add(make_shared<translate>(make_shared<rotate_y>(make_shared<bvh_node>(boxes2, 0.0f, 1.0f), 15.0f),
+                                       vec3(-100, 270, 395)));
 
     return objects;
 
-    //hittable_list worldbvh;
-    //worldbvh.add(make_shared<bvh_node>(objects, 0.0f, 1.0f));
+    // hittable_list worldbvh;
+    // worldbvh.add(make_shared<bvh_node>(objects, 0.0f, 1.0f));
 
-
-    //return worldbvh;
+    // return worldbvh;
 }
 
-bool render_tile(
-    const hittable_list& world,
-    shared_ptr<hittable>& lights,
-    const camera& cam,
-    uint8_t* image,
-    int image_width,
-    int image_height,
-    int max_depth,
-    color background,
-    int xoffset,
-    int yoffset,
-    int tilewidth,
-    int tileheight,
-    int samples_per_pixel
-) {
+bool
+render_tile(const hittable_list& world,
+            shared_ptr<hittable>& lights,
+            const camera& cam,
+            uint8_t* image,
+            int image_width,
+            int image_height,
+            int max_depth,
+            color background,
+            int xoffset,
+            int yoffset,
+            int tilewidth,
+            int tileheight,
+            int samples_per_pixel)
+{
     int ystart = yoffset;
     int yend = yoffset + tileheight;
     int xstart = xoffset;
@@ -392,7 +392,9 @@ bool render_tile(
     return true;
 }
 
-int main() {
+int
+main()
+{
 
     // Image
     auto aspect_ratio = 16.0f / 9.0f;
@@ -413,83 +415,85 @@ int main() {
     shared_ptr<hittable> lights;
 
     switch (6) {
-    case 1:
-        world = random_scene();
-        lookfrom = point3(13.0f, 2.0f, 3.0f);
-        lookat = point3(0.0f, 0.0f, 0.0f);
-        vfov = 20.0f;
-        aperture = 0.1f;
-        background = color(0.70f, 0.80f, 1.00f);
-        break;
+        case 1:
+            world = random_scene();
+            lookfrom = point3(13.0f, 2.0f, 3.0f);
+            lookat = point3(0.0f, 0.0f, 0.0f);
+            vfov = 20.0f;
+            aperture = 0.1f;
+            background = color(0.70f, 0.80f, 1.00f);
+            break;
 
-    case 2:
-        world = two_spheres();
-        lookfrom = point3(13.0f, 2.0f, 3.0f);
-        lookat = point3(0.0f, 0.0f, 0.0f);
-        vfov = 20.0f;
-        background = color(0.70f, 0.80f, 1.00f);
-        break;
-    case 3:
-        world = two_perlin_spheres();
-        lookfrom = point3(13.0f, 2.0f, 3.0f);
-        lookat = point3(0.0f, 0.0f, 0.0f);
-        vfov = 20.0f;
-        background = color(0.70f, 0.80f, 1.00f);
-        break;
-    case 4:
-        world = earth();
-        lookfrom = point3(13.0f, 2.0f, 3.0f);
-        lookat = point3(0.0f, 0.0f, 0.0f);
-        vfov = 20.0f;
-        background = color(0.70f, 0.80f, 1.00f);
-        break;
-    case 5:
-        world = simple_light();
-        samples_per_pixel = 400;
-        background = color(0.0f, 0.0f, 0.0f);
-        lookfrom = point3(26.0f, 3.0f, 6.0f);
-        lookat = point3(0.0f, 2.0f, 0.0f);
-        vfov = 20.0f;
-        break;
-    case 6:
-        world = cornell_box();
-        aspect_ratio = 1.0f;
-        image_width = 600;
-        samples_per_pixel = 1000;
-        background = color(0.0f, 0.0f, 0.0f);
-        lookfrom = point3(278.0f, 278.0f, -800.0f);
-        lookat = point3(278.0f, 278.0f, 0.0f);
-        vfov = 40.0f;
-        //lights =
-          //  make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>());
+        case 2:
+            world = two_spheres();
+            lookfrom = point3(13.0f, 2.0f, 3.0f);
+            lookat = point3(0.0f, 0.0f, 0.0f);
+            vfov = 20.0f;
+            background = color(0.70f, 0.80f, 1.00f);
+            break;
+        case 3:
+            world = two_perlin_spheres();
+            lookfrom = point3(13.0f, 2.0f, 3.0f);
+            lookat = point3(0.0f, 0.0f, 0.0f);
+            vfov = 20.0f;
+            background = color(0.70f, 0.80f, 1.00f);
+            break;
+        case 4:
+            world = earth();
+            lookfrom = point3(13.0f, 2.0f, 3.0f);
+            lookat = point3(0.0f, 0.0f, 0.0f);
+            vfov = 20.0f;
+            background = color(0.70f, 0.80f, 1.00f);
+            break;
+        case 5:
+            world = simple_light();
+            samples_per_pixel = 400;
+            background = color(0.0f, 0.0f, 0.0f);
+            lookfrom = point3(26.0f, 3.0f, 6.0f);
+            lookat = point3(0.0f, 2.0f, 0.0f);
+            vfov = 20.0f;
+            break;
+        case 6:
+            world = cornell_box();
+            aspect_ratio = 1.0f;
+            image_width = 600;
+            samples_per_pixel = 1000;
+            background = color(0.0f, 0.0f, 0.0f);
+            lookfrom = point3(278.0f, 278.0f, -800.0f);
+            lookat = point3(278.0f, 278.0f, 0.0f);
+            vfov = 40.0f;
+            // lights =
+            //  make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>());
 
-        //lights =
-         //   make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>());
+            // lights =
+            //   make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>());
 
-        lights = make_shared<hittable_list>();
-        ((hittable_list*)lights.get())->add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>()));
-        ((hittable_list*)lights.get())->add(make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>()));
-        break;
-    case 7:
-        world = cornell_smoke();
-        aspect_ratio = 1.0f;
-        image_width = 600;
-        samples_per_pixel = 200;
-        lookfrom = point3(278.0f, 278.0f, -800.0f);
-        lookat = point3(278.0f, 278.0f, 0.0f);
-        vfov = 40.0f;
-        break;
-    default:
-    case 8:
-        world = final_scene();
-        aspect_ratio = 1.0f;
-        image_width = 800;
-        samples_per_pixel = 10000;
-        background = color(0, 0, 0);
-        lookfrom = point3(478, 278, -600);
-        lookat = point3(278, 278, 0);
-        vfov = 40.0f;
-        break;
+            lights = make_shared<hittable_list>();
+            ((hittable_list*)lights.get())
+              ->add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>()));
+            ((hittable_list*)lights.get())
+              ->add(make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>()));
+            break;
+        case 7:
+            world = cornell_smoke();
+            aspect_ratio = 1.0f;
+            image_width = 600;
+            samples_per_pixel = 200;
+            lookfrom = point3(278.0f, 278.0f, -800.0f);
+            lookat = point3(278.0f, 278.0f, 0.0f);
+            vfov = 40.0f;
+            break;
+        default:
+        case 8:
+            world = final_scene();
+            aspect_ratio = 1.0f;
+            image_width = 800;
+            samples_per_pixel = 10000;
+            background = color(0, 0, 0);
+            lookfrom = point3(478, 278, -600);
+            lookat = point3(278, 278, 0);
+            vfov = 40.0f;
+            break;
     }
 
     // Camera
@@ -497,7 +501,7 @@ int main() {
     vec3 vup(0.0f, 1.0f, 0.0f);
     auto dist_to_focus = 10.0f;
     int image_height = static_cast<int>(image_width / aspect_ratio);
-    
+
     uint8_t* image = new uint8_t[image_width * image_height * 3];
 
     auto time0 = 0.0f;
@@ -505,14 +509,12 @@ int main() {
 
     camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, time0, time1);
 
-    
     // Render
     auto start = std::chrono::high_resolution_clock::now();
 
-
     unsigned int number_of_cores = std::thread::hardware_concurrency();
 
-    std::vector< std::future<bool> > jobs;
+    std::vector<std::future<bool>> jobs;
     raygbiv::Tasks tasks;
     // divide image into a set of tiles to run per thread.
     int n_x_tiles = 4;
@@ -530,23 +532,37 @@ int main() {
             if (yoffset + tileheight > image_height) {
                 tileheight = image_height - yoffset;
             }
-            jobs.push_back(tasks.queue([&world, &lights, &cam, image, image_width, image_height, max_depth, background, samples_per_pixel, xoffset, yoffset, tilewidth, tileheight]()->bool {
-                return render_tile(world, lights, cam, image, image_width,
-                    image_height,
-                    max_depth,
-                    background,
-                    xoffset,
-                    yoffset,
-                    tilewidth,
-                    tileheight,
-                    samples_per_pixel);
-                }));
+            jobs.push_back(tasks.queue([&world,
+                                        &lights,
+                                        &cam,
+                                        image,
+                                        image_width,
+                                        image_height,
+                                        max_depth,
+                                        background,
+                                        samples_per_pixel,
+                                        xoffset,
+                                        yoffset,
+                                        tilewidth,
+                                        tileheight]() -> bool {
+                return render_tile(world,
+                                   lights,
+                                   cam,
+                                   image,
+                                   image_width,
+                                   image_height,
+                                   max_depth,
+                                   background,
+                                   xoffset,
+                                   yoffset,
+                                   tilewidth,
+                                   tileheight,
+                                   samples_per_pixel);
+            }));
         }
     }
     tasks.start(number_of_cores);
     for_each(jobs.begin(), jobs.end(), [](auto& x) { x.get(); });
-
-
 
 #if 0
     for (int j = image_height - 1; j >= 0; --j) {
@@ -571,8 +587,7 @@ int main() {
     std::cerr << "\nRender Done.\n";
 
     stbi_flip_vertically_on_write(1);
-    stbi_write_png("out.png", image_width, image_height, 3, image, 3*image_width);
+    stbi_write_png("out.png", image_width, image_height, 3, image, 3 * image_width);
 
     std::cerr << "\nDone.\n";
 }
-
