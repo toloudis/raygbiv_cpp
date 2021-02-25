@@ -13,7 +13,10 @@ class ray
       , dir()
       , tm(0)
     {}
-    ray(const point3& origin, const vec3& direction, float time = 0.0f)
+
+    ray(const point3& origin,
+        const vec3& direction,
+        float time = 0.0f)
       : orig(origin)
       , dir(direction)
       , tm(time)
