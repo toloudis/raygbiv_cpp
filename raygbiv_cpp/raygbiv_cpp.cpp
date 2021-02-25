@@ -27,6 +27,21 @@
 #include <sstream>
 #include <vector>
 
+struct render_settings
+{
+    int image_width = 1;
+    int image_height = 1;
+    int samples_per_pixel = 1;
+    int max_path_size = 1;
+
+    void setWidthAndAspect(int width, float aspect)
+    {
+        image_width = width;
+        image_height = static_cast<int>(width / aspect);
+    }
+};
+
+
 color
 ray_color(const ray& r, const color& background, const hittable& world, shared_ptr<hittable>& lights, int depth)
 {
@@ -93,15 +108,12 @@ render_tile(const hittable_list& world,
             shared_ptr<hittable>& lights,
             const camera& cam,
             uint8_t* image,
-            int image_width,
-            int image_height,
-            int max_depth,
+    const render_settings& rs,
             color background,
             int xoffset,
             int yoffset,
             int tilewidth,
-            int tileheight,
-            int samples_per_pixel)
+            int tileheight)
 {
     int ystart = yoffset;
     int yend = yoffset + tileheight;
@@ -116,14 +128,14 @@ render_tile(const hittable_list& world,
         for (int i = xstart; i < xend; ++i) {
 
             color pixel_color(0.0f, 0.0f, 0.0f);
-            for (int s = 0; s < samples_per_pixel; ++s) {
-                auto u = (i + random_float()) / (image_width - 1);
-                auto v = (j + random_float()) / (image_height - 1);
+            for (int s = 0; s < rs.samples_per_pixel; ++s) {
+                auto u = (i + random_float()) / (rs.image_width - 1);
+                auto v = (j + random_float()) / (rs.image_height - 1);
                 ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, background, world, lights, max_depth);
+                pixel_color += ray_color(r, background, world, lights, rs.max_path_size);
             }
 
-            putPixel(image, samples_per_pixel, pixel_color, i, j, image_width);
+            putPixel(image, rs.samples_per_pixel, pixel_color, i, j, rs.image_width);
         }
     }
 
@@ -139,10 +151,12 @@ main()
 {
 
     // Image
+    render_settings rs;
+    rs.image_width = 400;
+    rs.samples_per_pixel = 100;
+    rs.max_path_size = 50;
+
     auto aspect_ratio = 16.0f / 9.0f;
-    int image_width = 400;
-    int samples_per_pixel = 100;
-    const int max_depth = 50;
 
     // World
 
@@ -189,7 +203,7 @@ main()
             break;
         case 5:
             world = simple_light();
-            samples_per_pixel = 400;
+            rs.samples_per_pixel = 400;
             background = color(0.0f, 0.0f, 0.0f);
             lookfrom = point3(26.0f, 3.0f, 6.0f);
             lookat = point3(0.0f, 2.0f, 0.0f);
@@ -198,8 +212,8 @@ main()
         case 6:
             world = cornell_box();
             aspect_ratio = 1.0f;
-            image_width = 600;
-            samples_per_pixel = 1000;
+            rs.image_width = 600;
+            rs.samples_per_pixel = 1000;
             background = color(0.0f, 0.0f, 0.0f);
             lookfrom = point3(278.0f, 278.0f, -800.0f);
             lookat = point3(278.0f, 278.0f, 0.0f);
@@ -219,8 +233,8 @@ main()
         case 7:
             world = cornell_smoke();
             aspect_ratio = 1.0f;
-            image_width = 600;
-            samples_per_pixel = 200;
+            rs.image_width = 600;
+            rs.samples_per_pixel = 200;
             lookfrom = point3(278.0f, 278.0f, -800.0f);
             lookat = point3(278.0f, 278.0f, 0.0f);
             vfov = 40.0f;
@@ -229,8 +243,8 @@ main()
         case 8:
             world = final_scene();
             aspect_ratio = 1.0f;
-            image_width = 800;
-            samples_per_pixel = 10000;
+            rs.image_width = 800;
+            rs.samples_per_pixel = 10000;
             background = color(0, 0, 0);
             lookfrom = point3(478, 278, -600);
             lookat = point3(278, 278, 0);
@@ -242,9 +256,11 @@ main()
 
     vec3 vup(0.0f, 1.0f, 0.0f);
     auto dist_to_focus = 10.0f;
-    int image_height = static_cast<int>(image_width / aspect_ratio);
 
-    uint8_t* image = new uint8_t[image_width * image_height * 3];
+    // finalize the image dimensions
+    rs.setWidthAndAspect(rs.image_width, aspect_ratio);
+
+    uint8_t* image = new uint8_t[rs.image_width * rs.image_height * 3];
 
     auto time0 = 0.0f;
     auto time1 = 1.0f;
@@ -264,25 +280,22 @@ main()
     for (int i = 0; i < n_y_tiles; ++i) {
         for (int j = 0; j < n_x_tiles; ++j) {
 
-            int xoffset = j * image_width / n_x_tiles;
-            int yoffset = i * image_height / n_y_tiles;
-            int tilewidth = image_width / n_x_tiles;
-            int tileheight = image_height / n_y_tiles;
-            if (xoffset + tilewidth > image_width) {
-                tilewidth = image_width - xoffset;
+            int xoffset = j * rs.image_width / n_x_tiles;
+            int yoffset = i * rs.image_height / n_y_tiles;
+            int tilewidth = rs.image_width / n_x_tiles;
+            int tileheight = rs.image_height / n_y_tiles;
+            if (xoffset + tilewidth > rs.image_width) {
+                tilewidth = rs.image_width - xoffset;
             }
-            if (yoffset + tileheight > image_height) {
-                tileheight = image_height - yoffset;
+            if (yoffset + tileheight > rs.image_height) {
+                tileheight = rs.image_height - yoffset;
             }
             jobs.push_back(tasks.queue([&world,
                                         &lights,
                                         &cam,
                                         image,
-                                        image_width,
-                                        image_height,
-                                        max_depth,
+                                        &rs,
                                         background,
-                                        samples_per_pixel,
                                         xoffset,
                                         yoffset,
                                         tilewidth,
@@ -291,15 +304,12 @@ main()
                                    lights,
                                    cam,
                                    image,
-                                   image_width,
-                                   image_height,
-                                   max_depth,
+                                   rs,
                                    background,
                                    xoffset,
                                    yoffset,
                                    tilewidth,
-                                   tileheight,
-                                   samples_per_pixel);
+                                   tileheight);
             }));
         }
     }
@@ -329,7 +339,7 @@ main()
     std::cerr << "\nRender Done.\n";
 
     stbi_flip_vertically_on_write(1);
-    stbi_write_png("out.png", image_width, image_height, 3, image, 3 * image_width);
+    stbi_write_png("out.png", rs.image_width, rs.image_height, 3, image, 3 * rs.image_width);
 
     std::cerr << "\nDone.\n";
 }
