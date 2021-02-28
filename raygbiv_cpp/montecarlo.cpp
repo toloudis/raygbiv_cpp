@@ -4,6 +4,7 @@
 #include "montecarlo.h"
 
 #include "rtweekend.h"
+#include "vec3.h"
 
 #include <iomanip>
 #include <iostream>

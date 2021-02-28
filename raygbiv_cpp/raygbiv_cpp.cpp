@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "color.h"
 #include "hittable_list.h"
+#include "image_buffer.h"
 #include "material.h"
 #include "pdf.h"
 #include "scene.h"
@@ -107,8 +108,8 @@ bool
 render_tile(const hittable_list& world,
             shared_ptr<hittable>& lights,
             const camera& cam,
-            uint8_t* image,
-    const render_settings& rs,
+            imageBuffer* image,
+            const render_settings& rs,
             color background,
             int xoffset,
             int yoffset,
@@ -135,7 +136,7 @@ render_tile(const hittable_list& world,
                 pixel_color += ray_color(r, background, world, lights, rs.max_path_size);
             }
 
-            putPixel(image, rs.samples_per_pixel, pixel_color, i, j, rs.image_width);
+            image->putPixel(rs.samples_per_pixel, pixel_color, i, j);
         }
     }
 
@@ -260,7 +261,8 @@ main()
     // finalize the image dimensions
     rs.setWidthAndAspect(rs.image_width, aspect_ratio);
 
-    uint8_t* image = new uint8_t[rs.image_width * rs.image_height * 3];
+    //uint8_t* image = new uint8_t[rs.image_width * rs.image_height * 3];
+    imageBuffer* image = new imageBuffer(rs.image_width, rs.image_height);
 
     auto time0 = 0.0f;
     auto time1 = 1.0f;
@@ -339,7 +341,7 @@ main()
     std::cerr << "\nRender Done.\n";
 
     stbi_flip_vertically_on_write(1);
-    stbi_write_png("out.png", rs.image_width, rs.image_height, 3, image, 3 * rs.image_width);
+    stbi_write_png("out.png", rs.image_width, rs.image_height, 3, image->data, 3 * rs.image_width);
 
     std::cerr << "\nDone.\n";
 }

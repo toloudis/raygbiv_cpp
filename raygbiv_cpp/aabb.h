@@ -4,6 +4,7 @@
 #define AABB_H
 
 #include "rtweekend.h"
+#include "ray.h"
 
 class aabb
 {

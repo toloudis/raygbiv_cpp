@@ -66,37 +66,5 @@ clamp(float x, float min, float max)
         return max;
     return x;
 }
-// Common Headers
-
-#include "ray.h"
-#include "vec3.h"
-
-inline vec3
-random_cosine_direction()
-{
-    auto r1 = random_float();
-    auto r2 = random_float();
-    auto z = sqrt(1 - r2);
-
-    auto phi = 2 * pi * r1;
-    auto x = cos(phi) * sqrt(r2);
-    auto y = sin(phi) * sqrt(r2);
-
-    return vec3(x, y, z);
-}
-
-inline vec3
-random_to_sphere(float radius, float distance_squared)
-{
-    auto r1 = random_float();
-    auto r2 = random_float();
-    auto z = 1 + r2 * (sqrt(1 - radius * radius / distance_squared) - 1);
-
-    auto phi = 2 * pi * r1;
-    auto x = cos(phi) * sqrt(1 - z * z);
-    auto y = sin(phi) * sqrt(1 - z * z);
-
-    return vec3(x, y, z);
-}
 
 #endif
