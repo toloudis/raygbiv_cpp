@@ -81,27 +81,64 @@ ray_color(const ray& r, const color& background, const hittable& world, shared_p
                        ray_color(scattered, background, world, lights, depth - 1) / pdf_val;
 }
 
-void
-putPixel(uint8_t* image, int samples_per_pixel, color& pixel_color, int i, int j, int image_width)
+color
+path_color(const ray& r, const color& background, const hittable& world, shared_ptr<hittable>& lights, int depth)
 {
-    auto r = pixel_color.x();
-    auto g = pixel_color.y();
-    auto b = pixel_color.z();
+    // this is the running total color sample for this path
+    color path_contrib = color(0.0f, 0.0f, 0.0f);
 
-    // Divide the color by the number of samples and gamma-correct for gamma=2.0.
-    auto scale = 1.0f / samples_per_pixel;
-    r = sqrt(scale * r);
-    g = sqrt(scale * g);
-    b = sqrt(scale * b);
+    // attenuation must be multiplied again on each path segment
+    // so that it decreases for longer paths
+    color attenuation = color(1.0f, 1.0f, 1.0f);
 
-    // Write the translated [0,255] value of each color component.
-    int ir = static_cast<int>(256 * clamp(r, 0.0f, 0.999f));
-    int ig = static_cast<int>(256 * clamp(g, 0.0f, 0.999f));
-    int ib = static_cast<int>(256 * clamp(b, 0.0f, 0.999f));
+    // this is the ray for the current path segment
+    ray path_ray = r;
 
-    image[0 + i * 3 + j * (image_width * 3)] = (uint8_t)ir;
-    image[1 + i * 3 + j * (image_width * 3)] = (uint8_t)ig;
-    image[2 + i * 3 + j * (image_width * 3)] = (uint8_t)ib;
+    for (int i = 0; i < depth; ++i) {
+        hit_record rec;
+        // do intersection test
+        bool hit = world.hit(path_ray, RAY_EPSILON, infinity, rec);
+
+        // If the ray hits nothing, add background color contribution and terminate path
+        if (!hit) {
+            path_contrib += attenuation * background;
+            break;
+        }
+
+        scatter_record srec;
+        color emitted = rec.mat_ptr->emitted(path_ray, rec, rec.u, rec.v, rec.p);
+        // returns the scattering pdf for this material inside of srec
+        // if scatter returns false, terminate path! 
+        if (!rec.mat_ptr->scatter(path_ray, rec, srec)) {
+            path_contrib += attenuation * emitted;
+            break;
+        }
+
+        if (srec.is_specular) {
+            // implicitly sampled specular ray
+            // pdf is delta function for pure specular, and the relevant factors = 1 (?)
+            attenuation *= srec.attenuation;
+            // set the next ray to trace
+            path_ray = srec.specular_ray;
+        }
+        else {
+            auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+
+            // 50-50 chance of sampling toward light or toward scatter direction
+            mixture_pdf p(light_ptr, srec.pdf_ptr);
+
+            // generate sample from MIS pdf: this will be the next path segment to trace
+            ray scattered = ray(rec.p, p.generate(), r.time());
+            // evaluate pdf(generated sample)
+            auto pdf_val = p.value(scattered.direction());
+
+            path_contrib += attenuation * emitted;
+            attenuation *= srec.attenuation * rec.mat_ptr->scattering_pdf(path_ray, rec, scattered) / pdf_val;
+            path_ray = scattered;
+        }
+
+    }
+    return path_contrib;
 }
 
 bool
@@ -133,7 +170,8 @@ render_tile(const hittable_list& world,
                 auto u = (i + random_float()) / (rs.image_width - 1);
                 auto v = (j + random_float()) / (rs.image_height - 1);
                 ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, background, world, lights, rs.max_path_size);
+                //pixel_color += ray_color(r, background, world, lights, rs.max_path_size);
+                pixel_color += path_color(r, background, world, lights, rs.max_path_size);
             }
 
             image->putPixel(rs.samples_per_pixel, pixel_color, i, j);
@@ -318,23 +356,6 @@ main()
     tasks.start(number_of_cores);
     for_each(jobs.begin(), jobs.end(), [](auto& x) { x.get(); });
 
-#if 0
-    for (int j = image_height - 1; j >= 0; --j) {
-        std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
-        for (int i = 0; i < image_width; ++i) {
-
-            color pixel_color(0.0f, 0.0f, 0.0f);
-            for (int s = 0; s < samples_per_pixel; ++s) {
-                auto u = (i + random_float()) / (image_width - 1);
-                auto v = (j + random_float()) / (image_height - 1);
-                ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, background, world, max_depth);
-            }
-
-            putPixel(image, samples_per_pixel, pixel_color, i, j, image_width);
-        }
-    }
-#endif
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cerr << "\nRender duration = " << duration.count() / 1000.f << " s" << std::endl;

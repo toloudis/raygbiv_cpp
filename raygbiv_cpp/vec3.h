@@ -50,6 +50,13 @@ class vec3
         e[2] *= t;
         return *this;
     }
+    vec3& operator*=(const vec3 t)
+    {
+        e[0] *= t[0];
+        e[1] *= t[1];
+        e[2] *= t[2];
+        return *this;
+    }
 
     vec3& operator/=(const float t) { return *this *= 1 / t; }
 
