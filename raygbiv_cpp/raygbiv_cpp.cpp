@@ -176,7 +176,7 @@ main()
     shared_ptr<hittable> lights;
     camera cam;
 
-    load_scene(6, rs, world, lights, cam, background);
+    load_scene(8, rs, world, lights, cam, background);
 
     //uint8_t* image = new uint8_t[rs.image_width * rs.image_height * 3];
     imageBuffer* image = new imageBuffer(rs.image_width, rs.image_height);

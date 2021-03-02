@@ -205,6 +205,20 @@ cornell_smoke()
 }
 
 hittable_list
+veach_mis() {
+    hittable_list objects;
+    auto mat1 = make_shared<lambertian>(color(1.0f, 0.0f, 0.0f));
+
+    objects.add(make_shared<sphere>(point3(0, 6, -4), 1.0f, make_shared<diffuse_light>(color(15, 15, 15))));
+
+    objects.add(make_shared<translate>(
+      make_shared<rotate_y>(make_shared<xz_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), 45.0f), vec3(0.0, 0.0, 0.0)));
+    //objects.add(make_shared<translate>(
+      //make_shared<rotate_y>(make_shared<sphere>(point3(0,0,0), 1.0f, mat1), 45.0f), vec3(0.0, 0.0, 0.0)));
+    return objects;
+}
+
+hittable_list
 final_scene()
 {
     hittable_list boxes1;
@@ -337,6 +351,7 @@ load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<
             //   make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>());
 
             lights = make_shared<hittable_list>();
+
             ((hittable_list*)lights.get())
               ->add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>()));
             ((hittable_list*)lights.get())
@@ -351,8 +366,29 @@ load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<
             lookat = point3(278.0f, 278.0f, 0.0f);
             vfov = 40.0f;
             break;
-        default:
         case 8:
+            world = veach_mis();
+            aspect_ratio = 1.0f;
+            rs.image_width = 600;
+            rs.samples_per_pixel = 10;
+            background = color(0.0f, 0.0f, 1.0f);
+            lookfrom = point3(0.0f, 0.0f, -16.0f);
+            lookat = point3(0.0f, 0.0f, 0.0f);
+            vfov = 40.0f;
+            // lights =
+            //  make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>());
+
+            // lights =
+            //   make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>());
+
+            lights = make_shared<hittable_list>();
+
+            ((hittable_list*)lights.get())
+              ->add(make_shared<sphere>(point3(0, 6, 0), 1.0f, make_shared<diffuse_light>(color(15, 15, 15))));
+            break;
+
+        default:
+        case 9:
             world = final_scene();
             aspect_ratio = 1.0f;
             rs.image_width = 800;

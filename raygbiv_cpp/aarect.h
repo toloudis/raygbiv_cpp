@@ -36,6 +36,25 @@ class xy_rect : public hittable
         return true;
     }
 
+    virtual float pdf_value(const point3& origin, const vec3& v) const override
+    {
+        hit_record rec;
+        if (!this->hit(ray(origin, v), RAY_EPSILON, infinity, rec))
+            return 0;
+
+        auto area = (x1 - x0) * (y1 - y0);
+        auto distance_squared = rec.t * rec.t * v.length_squared();
+        auto cosine = fabs(dot(v, rec.normal) / v.length());
+
+        return distance_squared / (cosine * area);
+    }
+
+    virtual vec3 random(const point3& origin) const override
+    {
+        auto random_point = point3(random_float(x0, x1), random_float(y0, y1), k);
+        return random_point - origin;
+    }
+
   public:
     shared_ptr<material> mp;
     float x0, x1, y0, y1, k;
@@ -122,6 +141,25 @@ class yz_rect : public hittable
         // dimension a small amount.
         output_box = aabb(point3(k - 0.0001f, y0, z0), point3(k + 0.0001f, y1, z1));
         return true;
+    }
+
+    virtual float pdf_value(const point3& origin, const vec3& v) const override
+    {
+        hit_record rec;
+        if (!this->hit(ray(origin, v), RAY_EPSILON, infinity, rec))
+            return 0;
+
+        auto area = (z1 - z0) * (y1 - y0);
+        auto distance_squared = rec.t * rec.t * v.length_squared();
+        auto cosine = fabs(dot(v, rec.normal) / v.length());
+
+        return distance_squared / (cosine * area);
+    }
+
+    virtual vec3 random(const point3& origin) const override
+    {
+        auto random_point = point3(k, random_float(y0, y1), random_float(z0, z1));
+        return random_point - origin;
     }
 
   public:
