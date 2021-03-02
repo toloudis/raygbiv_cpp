@@ -10,6 +10,9 @@
 class camera
 {
   public:
+      camera(): camera(point3(0,0,-1), point3(0,0,0), vec3(0,1,0), 40.0f, 16.0f/9.0f, 0.0f, 10.0f, 0.0f, 1.0f) {
+
+    }
     camera(point3 lookfrom,
            point3 lookat,
            vec3 vup,

@@ -14,10 +14,6 @@
 #include "scene.h"
 #include "threadpool.h"
 
-//TODO remove these
-#include "aarect.h"
-#include "sphere.h"
-
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #define STB_IMAGE_IMPLEMENTATION
@@ -27,20 +23,6 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-
-struct render_settings
-{
-    int image_width = 1;
-    int image_height = 1;
-    int samples_per_pixel = 1;
-    int max_path_size = 1;
-
-    void setWidthAndAspect(int width, float aspect)
-    {
-        image_width = width;
-        image_height = static_cast<int>(width / aspect);
-    }
-};
 
 
 color
@@ -188,124 +170,16 @@ render_tile(const hittable_list& world,
 int
 main()
 {
-
-    // Image
-    render_settings rs;
-    rs.image_width = 400;
-    rs.samples_per_pixel = 100;
-    rs.max_path_size = 50;
-
-    auto aspect_ratio = 16.0f / 9.0f;
-
-    // World
-
-    hittable_list world;
-
-    point3 lookfrom;
-    point3 lookat;
-    auto vfov = 40.0f;
-    auto aperture = 0.0f;
     color background(0, 0, 0);
-
+    render_settings rs;
+    hittable_list world;
     shared_ptr<hittable> lights;
+    camera cam;
 
-    switch (6) {
-        case 1:
-            world = random_scene();
-            lookfrom = point3(13.0f, 2.0f, 3.0f);
-            lookat = point3(0.0f, 0.0f, 0.0f);
-            vfov = 20.0f;
-            aperture = 0.1f;
-            background = color(0.70f, 0.80f, 1.00f);
-            break;
-
-        case 2:
-            world = two_spheres();
-            lookfrom = point3(13.0f, 2.0f, 3.0f);
-            lookat = point3(0.0f, 0.0f, 0.0f);
-            vfov = 20.0f;
-            background = color(0.70f, 0.80f, 1.00f);
-            break;
-        case 3:
-            world = two_perlin_spheres();
-            lookfrom = point3(13.0f, 2.0f, 3.0f);
-            lookat = point3(0.0f, 0.0f, 0.0f);
-            vfov = 20.0f;
-            background = color(0.70f, 0.80f, 1.00f);
-            break;
-        case 4:
-            world = earth();
-            lookfrom = point3(13.0f, 2.0f, 3.0f);
-            lookat = point3(0.0f, 0.0f, 0.0f);
-            vfov = 20.0f;
-            background = color(0.70f, 0.80f, 1.00f);
-            break;
-        case 5:
-            world = simple_light();
-            rs.samples_per_pixel = 400;
-            background = color(0.0f, 0.0f, 0.0f);
-            lookfrom = point3(26.0f, 3.0f, 6.0f);
-            lookat = point3(0.0f, 2.0f, 0.0f);
-            vfov = 20.0f;
-            break;
-        case 6:
-            world = cornell_box();
-            aspect_ratio = 1.0f;
-            rs.image_width = 600;
-            rs.samples_per_pixel = 1000;
-            background = color(0.0f, 0.0f, 0.0f);
-            lookfrom = point3(278.0f, 278.0f, -800.0f);
-            lookat = point3(278.0f, 278.0f, 0.0f);
-            vfov = 40.0f;
-            // lights =
-            //  make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>());
-
-            // lights =
-            //   make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>());
-
-            lights = make_shared<hittable_list>();
-            ((hittable_list*)lights.get())
-              ->add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>()));
-            ((hittable_list*)lights.get())
-              ->add(make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>()));
-            break;
-        case 7:
-            world = cornell_smoke();
-            aspect_ratio = 1.0f;
-            rs.image_width = 600;
-            rs.samples_per_pixel = 200;
-            lookfrom = point3(278.0f, 278.0f, -800.0f);
-            lookat = point3(278.0f, 278.0f, 0.0f);
-            vfov = 40.0f;
-            break;
-        default:
-        case 8:
-            world = final_scene();
-            aspect_ratio = 1.0f;
-            rs.image_width = 800;
-            rs.samples_per_pixel = 10000;
-            background = color(0, 0, 0);
-            lookfrom = point3(478, 278, -600);
-            lookat = point3(278, 278, 0);
-            vfov = 40.0f;
-            break;
-    }
-
-    // Camera
-
-    vec3 vup(0.0f, 1.0f, 0.0f);
-    auto dist_to_focus = 10.0f;
-
-    // finalize the image dimensions
-    rs.setWidthAndAspect(rs.image_width, aspect_ratio);
+    load_scene(6, rs, world, lights, cam, background);
 
     //uint8_t* image = new uint8_t[rs.image_width * rs.image_height * 3];
     imageBuffer* image = new imageBuffer(rs.image_width, rs.image_height);
-
-    auto time0 = 0.0f;
-    auto time1 = 1.0f;
-
-    camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, time0, time1);
 
     // Render
     auto start = std::chrono::high_resolution_clock::now();
