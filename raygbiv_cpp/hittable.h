@@ -84,6 +84,26 @@ class rotate_y : public hittable
     aabb bbox;
 };
 
+class rotate_x : public hittable
+{
+  public:
+    rotate_x(shared_ptr<hittable> p, float angle);
+
+    virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override;
+
+    virtual bool bounding_box(float time0, float time1, aabb& output_box) const override
+    {
+        output_box = bbox;
+        return hasbox;
+    }
+
+  public:
+    shared_ptr<hittable> ptr;
+    float sin_theta;
+    float cos_theta;
+    bool hasbox;
+    aabb bbox;
+};
 
 class flip_face : public hittable
 {

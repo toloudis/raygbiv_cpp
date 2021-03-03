@@ -21,7 +21,7 @@ struct render_settings
 };
 
 void
-load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<hittable>& lights, camera& cam, color& background);
+load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<hittable_list>& lights, camera& cam, color& background);
 
 hittable_list
 two_spheres();

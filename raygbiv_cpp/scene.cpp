@@ -204,18 +204,40 @@ cornell_smoke()
     return objects;
 }
 
-hittable_list
-veach_mis() {
-    hittable_list objects;
+void
+veach_mis(hittable_list& world, shared_ptr<hittable_list>& lights)
+{
     auto mat1 = make_shared<lambertian>(color(1.0f, 0.0f, 0.0f));
 
-    objects.add(make_shared<sphere>(point3(0, 6, -4), 1.0f, make_shared<diffuse_light>(color(15, 15, 15))));
+    auto light1 = make_shared<sphere>(point3(-1.5, 3, -1), 0.03f, make_shared<diffuse_light>(color(15, 15, 15)));
+    auto light2 = make_shared<sphere>(point3(-0.5, 3, -1), 0.1f, make_shared<diffuse_light>(color(15, 15, 15)));
+    auto light3 = make_shared<sphere>(point3(0.5, 3, -1), 0.3f, make_shared<diffuse_light>(color(15, 15, 15)));
+    auto light4 = make_shared<sphere>(point3(1.5, 3, -1), 0.5f, make_shared<diffuse_light>(color(15, 15, 15)));
+    world.add(light1);
+    world.add(light2);
+    world.add(light3);
+    world.add(light4);
+    lights->add(light1);
+    lights->add(light2);
+    lights->add(light3);
+    lights->add(light4);
 
-    objects.add(make_shared<translate>(
-      make_shared<rotate_y>(make_shared<xz_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), 45.0f), vec3(0.0, 0.0, 0.0)));
+    world.add(make_shared<translate>(
+      make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), 0.0f), vec3(0.0, 0.0, 0.0)));
+    world.add(make_shared<translate>(
+      make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), -15.0f), vec3(0.0, -1.0, -0.2)));
+    world.add(make_shared<translate>(
+      make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), -30.0f), vec3(0.0, -2.0, -0.6)));
+    world.add(make_shared<translate>(
+      make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), -45.0f), vec3(0.0, -3.0, -1.2)));
+
+    //    objects.add(make_shared<translate>(
+  //      make_shared<rotate_y>(
+    //        make_shared<flip_face>(
+      //          make_shared<xz_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1)), 45.0f), vec3(0.0, 0.0, 0.0)));
+
     //objects.add(make_shared<translate>(
       //make_shared<rotate_y>(make_shared<sphere>(point3(0,0,0), 1.0f, mat1), 45.0f), vec3(0.0, 0.0, 0.0)));
-    return objects;
 }
 
 hittable_list
@@ -284,7 +306,7 @@ final_scene()
 }
 
 void
-load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<hittable>& lights, camera& cam, color& background)
+load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<hittable_list>& lights, camera& cam, color& background)
 {
     auto aspect_ratio = 16.0f / 9.0f;
 
@@ -350,12 +372,9 @@ load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<
             // lights =
             //   make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>());
 
-            lights = make_shared<hittable_list>();
 
-            ((hittable_list*)lights.get())
-              ->add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>()));
-            ((hittable_list*)lights.get())
-              ->add(make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>()));
+            lights->add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>()));
+            lights->add(make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>()));
             break;
         case 7:
             world = cornell_smoke();
@@ -366,25 +385,17 @@ load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<
             lookat = point3(278.0f, 278.0f, 0.0f);
             vfov = 40.0f;
             break;
-        case 8:
-            world = veach_mis();
+        case 8: 
+            {
+            veach_mis(world, lights);
             aspect_ratio = 1.0f;
             rs.image_width = 600;
             rs.samples_per_pixel = 10;
             background = color(0.0f, 0.0f, 1.0f);
-            lookfrom = point3(0.0f, 0.0f, -16.0f);
+            lookfrom = point3(0.0f, 0.0f, -10.0f);
             lookat = point3(0.0f, 0.0f, 0.0f);
             vfov = 40.0f;
-            // lights =
-            //  make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>());
-
-            // lights =
-            //   make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>());
-
-            lights = make_shared<hittable_list>();
-
-            ((hittable_list*)lights.get())
-              ->add(make_shared<sphere>(point3(0, 6, 0), 1.0f, make_shared<diffuse_light>(color(15, 15, 15))));
+            }
             break;
 
         default:

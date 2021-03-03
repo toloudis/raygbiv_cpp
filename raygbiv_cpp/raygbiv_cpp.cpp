@@ -26,7 +26,7 @@
 
 
 color
-ray_color(const ray& r, const color& background, const hittable& world, shared_ptr<hittable>& lights, int depth)
+ray_color(const ray& r, const color& background, const hittable& world, const shared_ptr<hittable>& lights, int depth)
 {
     hit_record rec;
 
@@ -64,7 +64,7 @@ ray_color(const ray& r, const color& background, const hittable& world, shared_p
 }
 
 color
-path_color(const ray& r, const color& background, const hittable& world, shared_ptr<hittable>& lights, int depth)
+path_color(const ray& r, const color& background, const hittable& world, const shared_ptr<hittable>& lights, int depth)
 {
     // this is the running total color sample for this path
     color path_contrib = color(0.0f, 0.0f, 0.0f);
@@ -125,7 +125,7 @@ path_color(const ray& r, const color& background, const hittable& world, shared_
 
 bool
 render_tile(const hittable_list& world,
-            shared_ptr<hittable>& lights,
+            const shared_ptr<hittable_list>& lights,
             const camera& cam,
             imageBuffer* image,
             const render_settings& rs,
@@ -152,8 +152,8 @@ render_tile(const hittable_list& world,
                 auto u = (i + random_float()) / (rs.image_width - 1);
                 auto v = (j + random_float()) / (rs.image_height - 1);
                 ray r = cam.get_ray(u, v);
-                //pixel_color += ray_color(r, background, world, lights, rs.max_path_size);
-                pixel_color += path_color(r, background, world, lights, rs.max_path_size);
+                pixel_color += ray_color(r, background, world, lights, rs.max_path_size);
+                //pixel_color += path_color(r, background, world, lights, rs.max_path_size);
             }
 
             image->putPixel(rs.samples_per_pixel, pixel_color, i, j);
@@ -173,7 +173,7 @@ main()
     color background(0, 0, 0);
     render_settings rs;
     hittable_list world;
-    shared_ptr<hittable> lights;
+    shared_ptr<hittable_list> lights = make_shared<hittable_list>();
     camera cam;
 
     load_scene(8, rs, world, lights, cam, background);
