@@ -29,21 +29,24 @@
 color
 ray_color(const ray& r, const color& background, const hittable& world, const shared_ptr<hittable>& lights, int depth)
 {
-    hit_record rec;
-
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if (depth <= 0)
         return color(0.0f, 0.0f, 0.0f);
 
+    hit_record rec;
+    bool isHit = world.hit(r, RAY_EPSILON, infinity, rec);
     // If the ray hits nothing, return the background color.
-    if (!world.hit(r, RAY_EPSILON, infinity, rec))
+    if (!isHit) {
         return background;
+    }
 
-    scatter_record srec;
     color emitted = rec.mat_ptr->emitted(r, rec, rec.u, rec.v, rec.p);
     // returns the scattering pdf for this material inside of srec
-    if (!rec.mat_ptr->scatter(r, rec, srec))
+    scatter_record srec;
+    bool doesScatter = rec.mat_ptr->scatter(r, rec, srec);
+    if (!doesScatter) {
         return emitted;
+    }
 
     // implicitly sampled specular ray
     if (srec.is_specular) {
