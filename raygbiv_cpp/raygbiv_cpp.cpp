@@ -19,6 +19,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <sstream>
@@ -228,7 +229,7 @@ main()
         }
     }
     tasks.start(number_of_cores);
-    for_each(jobs.begin(), jobs.end(), [](auto& x) { x.get(); });
+    std::for_each(jobs.begin(), jobs.end(), [](auto& x) { x.get(); });
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
