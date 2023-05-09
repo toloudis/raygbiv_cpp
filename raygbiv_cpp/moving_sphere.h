@@ -45,9 +45,9 @@ bool
 moving_sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const
 {
     vec3 oc = r.origin() - center(r.time());
-    auto a = r.direction().length_squared();
+    auto a = glm::length2(r.direction());
     auto half_b = dot(oc, r.direction());
-    auto c = oc.length_squared() - radius * radius;
+    auto c = glm::length2(oc) - radius * radius;
 
     auto discriminant = half_b * half_b - a * c;
     if (discriminant < 0)

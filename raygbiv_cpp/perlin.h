@@ -4,7 +4,7 @@
 #define PERLIN_H
 
 #include "rtweekend.h"
-
+#include "vec3.h"
 class perlin
 {
   public:
@@ -12,7 +12,7 @@ class perlin
     {
         ranvec = new vec3[point_count];
         for (int i = 0; i < point_count; ++i) {
-            ranvec[i] = unit_vector(vec3::random(-1, 1));
+            ranvec[i] = unit_vector(glm::linearRand(glm::vec3(-1,-1,-1), glm::vec3(1,1,1)));//::random(-1, 1));
         }
 
         perm_x = perlin_generate_perm();
@@ -30,16 +30,16 @@ class perlin
 
     float noise(const point3& p) const
     {
-        auto u = p.x() - floor(p.x());
-        auto v = p.y() - floor(p.y());
-        auto w = p.z() - floor(p.z());
+        auto u = p.x - floor(p.x);
+        auto v = p.y - floor(p.y);
+        auto w = p.z - floor(p.z);
         u = u * u * (3 - 2 * u);
         v = v * v * (3 - 2 * v);
         w = w * w * (3 - 2 * w);
 
-        auto i = static_cast<int>(floor(p.x()));
-        auto j = static_cast<int>(floor(p.y()));
-        auto k = static_cast<int>(floor(p.z()));
+        auto i = static_cast<int>(floor(p.x));
+        auto j = static_cast<int>(floor(p.y));
+        auto k = static_cast<int>(floor(p.z));
         vec3 c[2][2][2];
 
         for (int di = 0; di < 2; di++)

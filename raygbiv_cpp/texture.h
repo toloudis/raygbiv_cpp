@@ -47,7 +47,7 @@ class checker_texture : public texture
 
     virtual color value(float u, float v, const point3& p) const override
     {
-        auto sines = sin(10 * p.x()) * sin(10 * p.y()) * sin(10 * p.z());
+        auto sines = sin(10 * p.x) * sin(10 * p.y) * sin(10 * p.z);
         if (sines < 0)
             return odd->value(u, v, p);
         else
@@ -73,7 +73,7 @@ class noise_texture : public texture
 
     virtual color value(float u, float v, const point3& p) const override
     {
-        return color(1, 1, 1) * 0.5f * (1.0f + sin(scale * p.z() + 10.0f * noise.turb(p)));
+        return color(1, 1, 1) * 0.5f * (1.0f + sin(scale * p.z + 10.0f * noise.turb(p)));
     }
 
   public:

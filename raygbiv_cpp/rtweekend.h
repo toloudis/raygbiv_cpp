@@ -8,6 +8,10 @@
 #include <memory>
 #include <random>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/random.hpp>
+#include <glm/gtx/norm.hpp>
+
 // Usings
 
 using std::make_shared;

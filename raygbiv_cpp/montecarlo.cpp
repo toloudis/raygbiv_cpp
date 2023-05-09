@@ -99,10 +99,10 @@ vec3
 cosineSampleHemisphere(float u, float v, float* pdf = nullptr)
 {
     vec3 d = concentricSampleDisk(u, v);
-    d.e[2] = std::sqrt(std::max(0.0f, 1 - d.x() * d.x() - d.y() * d.y()));
+    d[2] = std::sqrt(std::max(0.0f, 1 - d.x * d.x - d.y * d.y));
     if (pdf) {
         // TODO : this should be costheta / pi.  confirm that d.z = cos theta
-        *pdf = d.z() / pi;
+        *pdf = d.z / pi;
     }
     return d;
 }

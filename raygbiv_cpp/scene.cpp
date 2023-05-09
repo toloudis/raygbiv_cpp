@@ -41,13 +41,13 @@ random_scene()
 
                 if (choose_mat < 0.8) {
                     // diffuse
-                    auto albedo = color::random() * color::random();
+                    auto albedo = glm::linearRand(vec3(0), vec3(1)) * glm::linearRand(vec3(0), vec3(1));
                     sphere_material = make_shared<lambertian>(albedo);
                     auto center2 = center + vec3(0.0f, random_float(0.0f, 0.5f), 0.0f);
                     world.add(make_shared<moving_sphere>(center, center2, 0.0f, 1.0f, 0.2f, sphere_material));
                 } else if (choose_mat < 0.95) {
                     // metal
-                    auto albedo = color::random(0.5, 1);
+                    auto albedo = glm::linearRand(vec3(0.5), vec3(1.0));//::random(0.5, 1);
                     auto fuzz = random_float(0, 0.5);
                     sphere_material = make_shared<metal>(albedo, fuzz);
                     world.add(make_shared<sphere>(center, 0.2f, sphere_material));
@@ -291,7 +291,7 @@ final_scene()
     auto white = make_shared<lambertian>(color(.73f, .73f, .73f));
     int ns = 1000;
     for (int j = 0; j < ns; j++) {
-        boxes2.add(make_shared<sphere>(point3::random(0, 165), 10.0f, white));
+        boxes2.add(make_shared<sphere>(glm::linearRand(vec3(0), vec3(165)), 10.0f, white));
     }
 
     objects.add(make_shared<translate>(make_shared<rotate_y>(make_shared<bvh_node>(boxes2, 0.0f, 1.0f), 15.0f),

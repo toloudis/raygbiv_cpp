@@ -8,9 +8,9 @@ imageBuffer::imageBuffer(int w, int h): w(w), h(h) {
 
 void imageBuffer::putPixel(int samples_per_pixel, color& pixel_color, int i, int j)
 {
-    auto r = pixel_color.x();
-    auto g = pixel_color.y();
-    auto b = pixel_color.z();
+    auto r = pixel_color.x;
+    auto g = pixel_color.y;
+    auto b = pixel_color.z;
 
     // Divide the color by the number of samples and gamma-correct for gamma=2.0.
     auto scale = 1.0f / samples_per_pixel;

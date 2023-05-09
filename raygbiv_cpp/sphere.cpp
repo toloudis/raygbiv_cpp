@@ -6,9 +6,9 @@ bool
 sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const
 {
     vec3 oc = r.origin() - center;
-    auto a = r.direction().length_squared();
+    auto a = glm::length2(r.direction());
     auto half_b = dot(oc, r.direction());
-    auto c = oc.length_squared() - radius * radius;
+    auto c = glm::length2(oc) - radius * radius;
 
     auto discriminant = half_b * half_b - a * c;
     if (discriminant < 0)
@@ -47,7 +47,7 @@ sphere::pdf_value(const point3& o, const vec3& v) const
     if (!this->hit(ray(o, v), RAY_EPSILON, infinity, rec))
         return 0;
 
-    auto cos_theta_max = sqrt(1 - radius * radius / (center - o).length_squared());
+    auto cos_theta_max = sqrt(1 - radius * radius / glm::length2(center - o));
     auto solid_angle = 2 * pi * (1 - cos_theta_max);
 
     return 1 / solid_angle;
@@ -57,7 +57,7 @@ vec3
 sphere::random(const point3& o) const
 {
     vec3 direction = center - o;
-    auto distance_squared = direction.length_squared();
+    auto distance_squared = glm::length2(direction);
     onb uvw;
     uvw.build_from_w(direction);
     return uvw.local(random_to_sphere(radius, distance_squared));

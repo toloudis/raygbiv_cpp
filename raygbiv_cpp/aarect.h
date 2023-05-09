@@ -43,7 +43,7 @@ class xy_rect : public hittable
             return 0;
 
         auto area = (x1 - x0) * (y1 - y0);
-        auto distance_squared = rec.t * rec.t * v.length_squared();
+        auto distance_squared = rec.t * rec.t * glm::length2(v);
         auto cosine = fabs(dot(v, rec.normal) / v.length());
 
         return distance_squared / (cosine * area);
@@ -97,7 +97,7 @@ class xz_rect : public hittable
             return 0;
 
         auto area = (x1 - x0) * (z1 - z0);
-        auto distance_squared = rec.t * rec.t * v.length_squared();
+        auto distance_squared = rec.t * rec.t * glm::length2(v);
         auto cosine = fabs(dot(v, rec.normal) / v.length());
 
         return distance_squared / (cosine * area);
@@ -150,7 +150,7 @@ class yz_rect : public hittable
             return 0;
 
         auto area = (z1 - z0) * (y1 - y0);
-        auto distance_squared = rec.t * rec.t * v.length_squared();
+        auto distance_squared = rec.t * rec.t * glm::length2(v);
         auto cosine = fabs(dot(v, rec.normal) / v.length());
 
         return distance_squared / (cosine * area);
