@@ -25,7 +25,6 @@
 #include <sstream>
 #include <vector>
 
-
 color
 ray_color(const ray& r, const color& background, const hittable& world, const shared_ptr<hittable>& lights, int depth)
 {
@@ -53,15 +52,20 @@ ray_color(const ray& r, const color& background, const hittable& world, const sh
         return srec.attenuation * ray_color(srec.specular_ray, background, world, lights, depth - 1);
     }
 
-    auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+    std::shared_ptr<pdf> p;
+    if (lights) {
+        auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
 
-    // 50-50 chance of sampling toward light or toward scatter direction
-    mixture_pdf p(light_ptr, srec.pdf_ptr);
+        // 50-50 chance of sampling toward light or toward scatter direction
+        p.reset(new mixture_pdf(light_ptr, srec.pdf_ptr));
 
+    } else {
+        p = srec.pdf_ptr;
+    }
     // generate sample from MIS pdf
-    ray scattered = ray(rec.p, p.generate(), r.time());
+    ray scattered = ray(rec.p, p->generate(), r.time());
     // evaluate pdf(generated sample)
-    auto pdf_val = p.value(scattered.direction());
+    auto pdf_val = p->value(scattered.direction());
 
     return emitted + srec.attenuation * rec.mat_ptr->scattering_pdf(r, rec, scattered) *
                        ray_color(scattered, background, world, lights, depth - 1) / pdf_val;
@@ -94,7 +98,7 @@ path_color(const ray& r, const color& background, const hittable& world, const s
         scatter_record srec;
         color emitted = rec.mat_ptr->emitted(path_ray, rec, rec.u, rec.v, rec.p);
         // returns the scattering pdf for this material inside of srec
-        // if scatter returns false, terminate path! 
+        // if scatter returns false, terminate path!
         if (!rec.mat_ptr->scatter(path_ray, rec, srec)) {
             path_contrib += attenuation * emitted;
             break;
@@ -106,8 +110,7 @@ path_color(const ray& r, const color& background, const hittable& world, const s
             attenuation *= srec.attenuation;
             // set the next ray to trace
             path_ray = srec.specular_ray;
-        }
-        else {
+        } else {
             auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
 
             // 50-50 chance of sampling toward light or toward scatter direction
@@ -122,7 +125,6 @@ path_color(const ray& r, const color& background, const hittable& world, const s
             attenuation *= srec.attenuation * rec.mat_ptr->scattering_pdf(path_ray, rec, scattered) / pdf_val;
             path_ray = scattered;
         }
-
     }
     return path_contrib;
 }
@@ -157,7 +159,7 @@ render_tile(const hittable_list& world,
                 auto v = (j + random_float()) / (rs.image_height - 1);
                 ray r = cam.get_ray(u, v);
                 pixel_color += ray_color(r, background, world, lights, rs.max_path_size);
-                //pixel_color += path_color(r, background, world, lights, rs.max_path_size);
+                // pixel_color += path_color(r, background, world, lights, rs.max_path_size);
             }
 
             image->putPixel(rs.samples_per_pixel, pixel_color, i, j);
@@ -180,9 +182,12 @@ main()
     shared_ptr<hittable_list> lights = make_shared<hittable_list>();
     camera cam;
 
-    load_scene(8, rs, world, lights, cam, background);
+    load_scene(3, rs, world, lights, cam, background);
 
-    //uint8_t* image = new uint8_t[rs.image_width * rs.image_height * 3];
+    if (lights->size() == 0) {
+        lights = nullptr;
+    }
+    // uint8_t* image = new uint8_t[rs.image_width * rs.image_height * 3];
     imageBuffer* image = new imageBuffer(rs.image_width, rs.image_height);
 
     // Render
@@ -208,27 +213,11 @@ main()
             if (yoffset + tileheight > rs.image_height) {
                 tileheight = rs.image_height - yoffset;
             }
-            jobs.push_back(tasks.queue([&world,
-                                        &lights,
-                                        &cam,
-                                        image,
-                                        &rs,
-                                        background,
-                                        xoffset,
-                                        yoffset,
-                                        tilewidth,
-                                        tileheight]() -> bool {
-                return render_tile(world,
-                                   lights,
-                                   cam,
-                                   image,
-                                   rs,
-                                   background,
-                                   xoffset,
-                                   yoffset,
-                                   tilewidth,
-                                   tileheight);
-            }));
+            jobs.push_back(tasks.queue(
+              [&world, &lights, &cam, image, &rs, background, xoffset, yoffset, tilewidth, tileheight]() -> bool {
+                  return render_tile(
+                    world, lights, cam, image, rs, background, xoffset, yoffset, tilewidth, tileheight);
+              }));
         }
     }
     tasks.start(number_of_cores);
