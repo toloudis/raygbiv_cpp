@@ -47,7 +47,7 @@ random_scene()
                     world.add(make_shared<moving_sphere>(center, center2, 0.0f, 1.0f, 0.2f, sphere_material));
                 } else if (choose_mat < 0.95) {
                     // metal
-                    auto albedo = glm::linearRand(vec3(0.5), vec3(1.0));//::random(0.5, 1);
+                    auto albedo = glm::linearRand(vec3(0.5), vec3(1.0)); //::random(0.5, 1);
                     auto fuzz = random_float(0, 0.5);
                     sphere_material = make_shared<metal>(albedo, fuzz);
                     world.add(make_shared<sphere>(center, 0.2f, sphere_material));
@@ -224,20 +224,23 @@ veach_mis(hittable_list& world, shared_ptr<hittable_list>& lights)
 
     world.add(make_shared<translate>(
       make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), 0.0f), vec3(0.0, 0.0, 0.0)));
-    world.add(make_shared<translate>(
-      make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), -15.0f), vec3(0.0, -1.0, -0.2)));
-    world.add(make_shared<translate>(
-      make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), -30.0f), vec3(0.0, -2.0, -0.6)));
-    world.add(make_shared<translate>(
-      make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), -45.0f), vec3(0.0, -3.0, -1.2)));
+    world.add(
+      make_shared<translate>(make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), -15.0f),
+                             vec3(0.0, -1.0, -0.2)));
+    world.add(
+      make_shared<translate>(make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), -30.0f),
+                             vec3(0.0, -2.0, -0.6)));
+    world.add(
+      make_shared<translate>(make_shared<rotate_x>(make_shared<xy_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1), -45.0f),
+                             vec3(0.0, -3.0, -1.2)));
 
     //    objects.add(make_shared<translate>(
-  //      make_shared<rotate_y>(
+    //      make_shared<rotate_y>(
     //        make_shared<flip_face>(
-      //          make_shared<xz_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1)), 45.0f), vec3(0.0, 0.0, 0.0)));
+    //          make_shared<xz_rect>(-2.0f, 2.0f, -0.5f, 0.5f, 0.0f, mat1)), 45.0f), vec3(0.0, 0.0, 0.0)));
 
-    //objects.add(make_shared<translate>(
-      //make_shared<rotate_y>(make_shared<sphere>(point3(0,0,0), 1.0f, mat1), 45.0f), vec3(0.0, 0.0, 0.0)));
+    // objects.add(make_shared<translate>(
+    // make_shared<rotate_y>(make_shared<sphere>(point3(0,0,0), 1.0f, mat1), 45.0f), vec3(0.0, 0.0, 0.0)));
 }
 
 hittable_list
@@ -306,7 +309,12 @@ final_scene()
 }
 
 void
-load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<hittable_list>& lights, camera& cam, color& background)
+load_scene(int scenetype,
+           render_settings& rs,
+           hittable_list& world,
+           shared_ptr<hittable_list>& lights,
+           camera& cam,
+           color& background)
 {
     auto aspect_ratio = 16.0f / 9.0f;
 
@@ -314,6 +322,7 @@ load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<
     point3 lookat;
     auto vfov = 40.0f;
     auto aperture = 0.0f;
+    auto dist_to_focus = 10.0f;
 
     rs.image_width = 400;
     rs.samples_per_pixel = 100;
@@ -365,13 +374,13 @@ load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<
             background = color(0.0f, 0.0f, 0.0f);
             lookfrom = point3(278.0f, 278.0f, -800.0f);
             lookat = point3(278.0f, 278.0f, 0.0f);
+            // dist_to_focus = 800.0f;
             vfov = 40.0f;
             // lights =
             //  make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>());
 
             // lights =
             //   make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>());
-
 
             lights->add(make_shared<xz_rect>(213.0f, 343.0f, 227.0f, 332.0f, 554.0f, shared_ptr<material>()));
             lights->add(make_shared<sphere>(point3(190, 90, 190), 90.0f, shared_ptr<material>()));
@@ -385,8 +394,7 @@ load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<
             lookat = point3(278.0f, 278.0f, 0.0f);
             vfov = 40.0f;
             break;
-        case 8: 
-            {
+        case 8: {
             veach_mis(world, lights);
             aspect_ratio = 1.0f;
             rs.image_width = 600;
@@ -395,8 +403,7 @@ load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<
             lookfrom = point3(0.0f, 0.0f, -10.0f);
             lookat = point3(0.0f, 0.0f, 0.0f);
             vfov = 40.0f;
-            }
-            break;
+        } break;
 
         default:
         case 9:
@@ -411,7 +418,6 @@ load_scene(int scenetype, render_settings& rs, hittable_list& world, shared_ptr<
             break;
     }
     vec3 vup(0.0f, 1.0f, 0.0f);
-    auto dist_to_focus = 10.0f;
 
     // finalize the image dimensions
     rs.setWidthAndAspect(rs.image_width, aspect_ratio);

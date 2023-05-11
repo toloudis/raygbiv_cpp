@@ -3,6 +3,7 @@
 
 #include "raygbiv_cpp.h"
 
+#include "argparse.hpp"
 #include "rtweekend.h"
 
 #include "camera.h"
@@ -174,15 +175,30 @@ render_tile(const hittable_list& world,
 }
 
 int
-main()
+main(int argc, char** argv)
 {
+    argparse::ArgumentParser program("RAY G BIV");
+
+    // single unnamed integer argument for scene number
+    program.add_argument("scene").help("select scene number").scan<'i', int>();
+
+    try {
+        program.parse_args(argc, argv);
+    } catch (const std::runtime_error& err) {
+        std::cerr << err.what() << std::endl;
+        std::cerr << program;
+        return 1;
+    }
+
+    auto iscene = program.get<int>("scene");
+
     color background(0, 0, 0);
     render_settings rs;
     hittable_list world;
     shared_ptr<hittable_list> lights = make_shared<hittable_list>();
     camera cam;
 
-    load_scene(3, rs, world, lights, cam, background);
+    load_scene(iscene, rs, world, lights, cam, background);
 
     if (lights->size() == 0) {
         lights = nullptr;
@@ -232,4 +248,5 @@ main()
     stbi_write_png("out.png", rs.image_width, rs.image_height, 3, image->data, 3 * rs.image_width);
 
     std::cerr << "\nDone.\n";
+    return 0;
 }
